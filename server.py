@@ -351,6 +351,8 @@ def add_item(section_title, raw):
                 break
         if sec_start is None:
             return {"ok": False, "error": "分区没找到, 请刷新"}, 409
+        if locate_block(lines, section_title, new_lines[0]) is not None:
+            return {"ok": False, "error": f"这条已经在「{section_title}」里了, 没有重复添加"}, 409
         last = sec_start
         j = sec_start + 1
         while j < len(lines) and not lines[j].startswith("## "):
@@ -444,6 +446,9 @@ class H(BaseHTTPRequestHandler):
         elif self.path == "/api/undo":
             body, code = undo_last()
             self._send(code, body)
+        elif self.path == "/api/chat/applied":
+            ok = secretary.mark_applied(req.get("t", ""), req.get("idx", -1))
+            self._send(200, {"ok": ok})
         elif self.path == "/api/chat":
             msg = (req.get("message") or "").strip()
             if not msg:

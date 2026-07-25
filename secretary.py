@@ -82,6 +82,20 @@ def _append_history(entry):
     HISTORY_F.write_text(json.dumps(h[-HIST_CAP:], ensure_ascii=False, indent=1))
 
 
+def mark_applied(t, idx):
+    """建议卡应用成功后落标记, 界面重绘/重开也不会复活成可再点的按钮。"""
+    h = history()
+    for m in reversed(h):
+        if m.get("t") == t and m.get("role") == "secretary" and m.get("suggestions"):
+            try:
+                m["suggestions"][int(idx)]["applied"] = True
+            except (IndexError, ValueError, TypeError):
+                return False
+            HISTORY_F.write_text(json.dumps(h[-HIST_CAP:], ensure_ascii=False, indent=1))
+            return True
+    return False
+
+
 BLOCK_TYPES = {"◆todo": "add", "◆todo-move": "move", "◆todo-remove": "remove"}
 
 

@@ -113,6 +113,12 @@
     font: 13px inherit; background: var(--bg); color: var(--fg);
     border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; }
   .thinking { color: var(--dim); font-size: 13px; padding: 4px 0 4px 8px; }
+  .item.flash { animation: flashbg 5s ease-out; }
+  @keyframes flashbg { 0%, 55% { background: color-mix(in srgb, var(--ok) 22%, var(--card));
+                                 border-color: var(--ok); } }
+  #chattoggle { position: relative; }
+  .reddot { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px;
+            border-radius: 5px; background: var(--accent); display: none; }
   .thinking::after { content: "…"; animation: think 1.2s infinite; }
   @keyframes think { 0% { content: "·"; } 33% { content: "··"; } 66% { content: "···"; } }
 </style>
@@ -132,7 +138,7 @@
   <div id="chatlog"></div>
 </div>
 <div id="chatbar">
-  <button id="chattoggle" title="展开/收起 Amy 对话">🤖</button>
+  <button id="chattoggle" title="展开/收起 Amy 对话">🤖<span id="unread" class="reddot"></span></button>
   <input id="chatinput" placeholder="跟 Amy 说说最近要做的事…（回车发送）">
   <button id="chatsend">发送</button>
 </div>
@@ -264,6 +270,7 @@ function renderDone(dn) {
 
 function renderItem(section, it) {
   const div = document.createElement("div"); div.className = "item";
+  div.dataset.line = it.text;              // 高亮定位用的原始主行
   const box = document.createElement("input"); box.type = "checkbox";
   const body = document.createElement("div"); body.className = "body";
   const main = document.createElement("div"); main.className = "main";
@@ -464,7 +471,7 @@ function renderChat(msgs) {
   chatlog.innerHTML = "";
   for (const m of msgs) {
     addMsg(m.role === "user" ? "user" : "sec", m.text, m.t);
-    for (const sg of (m.suggestions || [])) addSugg(sg);
+    (m.suggestions || []).forEach((sg, i) => addSugg(sg, m.t, i));
   }
   scrollChat();
 }
@@ -476,15 +483,22 @@ async function pullChat(force = false) {
     const msgs = d.messages;
     const last = msgs[msgs.length - 1];
     const tail = last ? last.t + "|" + last.role + "|" + last.text.slice(0, 60) : "";
-    if (force || tail !== lastTail) { lastTail = tail; renderChat(msgs); }
+    if (force || tail !== lastTail) {
+      const isNew = lastTail !== "" && tail !== lastTail;
+      lastTail = tail;
+      renderChat(msgs);
+      // Amy 有新回复而面板关着: 🤖 点亮小红点, 她主动来找你了
+      if (isNew && last && last.role === "secretary"
+          && chatpanel.style.display !== "block")
+        document.getElementById("unread").style.display = "block";
+    }
     return true;
   } catch (e) { return false; }
 }
 
-// 面板开着且没有进行中的气泡时, 每 10 秒自动同步一次
+// 每 10 秒自动同步一次(面板关着也查, 为了未读红点); 进行中的气泡在场时避让
 setInterval(() => {
-  if (chatpanel.style.display === "block"
-      && !chatlog.querySelector(".thinking") && !chatlog.querySelector(".waiting"))
+  if (!chatlog.querySelector(".thinking") && !chatlog.querySelector(".waiting"))
     pullChat();
 }, 10000);
 
@@ -497,7 +511,7 @@ function addMsg(role, text, t) {
   return m;
 }
 
-function addSugg(sg) {
+function addSugg(sg, msgT, idx) {
   const type = sg.type || "add";           // 旧历史记录没有 type 字段, 当 add
   const c = document.createElement("div"); c.className = "sugg";
   const w = document.createElement("div"); w.className = "where";
@@ -523,6 +537,9 @@ function addSugg(sg) {
     api = "/api/add";
     payload = { section: sg.section, block: sg.block };
   }
+  if (sg.applied) {                        // 已应用过: 按钮永久熄灭, 重绘不复活
+    btn.textContent = doneLabel; btn.disabled = true; btn.classList.add("applied");
+  }
   btn.addEventListener("click", async () => {
     btn.disabled = true;
     const r = await fetch(api, { method: "POST",
@@ -531,16 +548,40 @@ function addSugg(sg) {
     const res = await r.json();
     if (!res.ok) { alert(res.error || "失败"); btn.disabled = false; return; }
     btn.textContent = doneLabel; btn.classList.add("applied");
-    load();
+    sg.applied = true;
+    if (msgT !== undefined)                // 状态落进历史, 跨重绘/重开持久
+      fetch("/api/chat/applied", { method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ t: msgT, idx }) });
+    await load();
+    highlightItem(type === "move" ? (sg.block || sg.orig).split("\n")[0]
+                                  : (sg.block || "").split("\n")[0]);
   });
   c.append(w, pre, btn);
   chatlog.appendChild(c);
+}
+
+// 加入/挪动成功后: 展开所在分区, 滚过去, 闪 5 秒 — "写进去了但看不到"到此为止
+function highlightItem(firstLine) {
+  if (!firstLine) return;
+  const el = [...document.querySelectorAll(".item")]
+             .find(d => d.dataset.line === firstLine);
+  if (!el) return;
+  const body = el.closest(".sec-body");
+  if (body && body.classList.contains("hidden")) {
+    body.classList.remove("hidden");
+    body.previousElementSibling?.classList.remove("folded");
+  }
+  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 5200);
 }
 
 function scrollChat() { chatpanel.scrollTop = chatpanel.scrollHeight; }
 
 async function openChat() {
   chatpanel.style.display = "block";
+  document.getElementById("unread").style.display = "none";
   await pullChat(true);                      // 每次打开都重拉, 不再只拉一次
   try {
     const s = await (await fetch("/api/settings")).json();
@@ -608,10 +649,7 @@ async function sendChat() {
     think.remove();
     if (d.unconfigured) { showWizard((await (await fetch("/api/settings")).json())); }
     else if (!d.ok) { addMsg("sec", "（出错了：" + (d.error || "未知") + "）"); }
-    else {
-      addMsg("sec", d.reply);
-      for (const sg of (d.suggestions || [])) addSugg(sg);
-    }
+    else { await pullChat(true); }   // 本轮已在历史里, 统一渲染(建议卡自带持久身份)
   } catch (e) {
     // 连接被掐(浏览器引擎对长请求有 60 秒上限, 或服务重启), 但 Amy 后台可能还在干活,
     // 而且她干完一定会写进历史 — 盯着历史等她, 回复到了自动冒出来
