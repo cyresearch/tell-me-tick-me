@@ -32,9 +32,20 @@ def _model():
             or os.environ.get("DESK_SECRETARY_MODEL")
             or brain.load_conf().get("model")
             or "opus")
-# 权限模型(仅 claude-code 通道): 全库只读 + 仅记忆文件可写; todo 修改走 ◆todo 确认流
+# 权限模型(仅 claude-code 通道): 读全开、写要人 —
+# 文件全库只读 + 仅记忆文件可写; todo 修改走 ◆todo 确认流;
+# Gmail 读+草稿(连接器本身没有发送能力, 发送永远由用户手动);
+# 日历只读(建/改/删日程不放行); 联网查询开放。
 _MEM_SPEC = "//" + str(MEMORY_F).lstrip("/")
-TOOLS = ("Read", "Glob", "Grep", f"Write({_MEM_SPEC})", f"Edit({_MEM_SPEC})")
+TOOLS = ("Read", "Glob", "Grep", f"Write({_MEM_SPEC})", f"Edit({_MEM_SPEC})",
+         "WebSearch", "WebFetch",
+         "mcp__claude_ai_Gmail__search_threads", "mcp__claude_ai_Gmail__get_message",
+         "mcp__claude_ai_Gmail__get_thread", "mcp__claude_ai_Gmail__list_drafts",
+         "mcp__claude_ai_Gmail__list_labels", "mcp__claude_ai_Gmail__create_draft",
+         "mcp__claude_ai_Google_Calendar__list_calendars",
+         "mcp__claude_ai_Google_Calendar__list_events",
+         "mcp__claude_ai_Google_Calendar__get_event",
+         "mcp__claude_ai_Google_Calendar__suggest_time")
 WEEKDAYS = "一二三四五六日"
 
 
