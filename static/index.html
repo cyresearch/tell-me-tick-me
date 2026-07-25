@@ -573,7 +573,7 @@ async function sendChat() {
   await openChat();
   addMsg("user", v);
   const think = document.createElement("div"); think.className = "thinking";
-  think.textContent = "Amy 思考中";
+  think.textContent = "Amy 思考中（要翻资料的话，可能需要一两分钟）";
   chatlog.appendChild(think); scrollChat();
   chatinput.disabled = true;
   try {

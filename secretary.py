@@ -141,12 +141,17 @@ def _think_claude_code(full, persona):
            "--allowedTools", *TOOLS]
     if st.get("started"):
         cmd.append("--continue")
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=240, cwd=str(HOME))
-    raw = r.stdout.strip()
-    if not raw and st.get("started"):       # 会话丢了就重开一条
-        cmd.remove("--continue")
+    try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=240, cwd=str(HOME))
         raw = r.stdout.strip()
+        if not raw and st.get("started"):   # 会话丢了就重开一条
+            cmd.remove("--continue")
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=240, cwd=str(HOME))
+            raw = r.stdout.strip()
+    except subprocess.TimeoutExpired:
+        # 千万别把原始异常吐给界面: 它带着整条命令和 prompt 全文
+        raise RuntimeError("Amy 想得太久, 这一轮超时了(4 分钟)。她可能正在翻比较大的资料; "
+                           "再发一次试试, 或把问题拆小一点。") from None
     if not raw:
         raise RuntimeError(f"Amy 没回话 (claude 退出码 {r.returncode}: {r.stderr.strip()[:200]})")
     st["started"] = True
@@ -176,6 +181,9 @@ def chat(message, todo_text, done_lines):
     full = "\n\n".join(ctx)
     persona = _persona()
 
+    stamp = f"{d:%Y-%m-%d %H:%M}"
+    _append_history({"t": stamp, "role": "user", "text": message})   # 先记档, 失败轮次也留痕
+
     if prov == "claude-code":
         raw = _think_claude_code(full, persona)
     elif prov == "api":
@@ -188,8 +196,6 @@ def chat(message, todo_text, done_lines):
         raise RuntimeError("Amy 没回话, 再试一次?")
 
     reply, suggestions = parse_reply(raw)
-    stamp = f"{d:%Y-%m-%d %H:%M}"
-    _append_history({"t": stamp, "role": "user", "text": message})
     _append_history({"t": stamp, "role": "secretary", "text": reply,
                      "suggestions": suggestions})
     return reply, suggestions
