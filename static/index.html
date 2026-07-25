@@ -449,13 +449,44 @@ document.getElementById("undo").addEventListener("click", async () => {
   document.getElementById("undobar").style.display = "none";
   load();
 });
-document.getElementById("refresh").addEventListener("click", load);
+document.getElementById("refresh").addEventListener("click", () => {
+  load();                                    // 刷新 todo 列表
+  if (chatpanel.style.display === "block") pullChat(true);   // 面板开着就连聊天一起刷
+});
 
 // ---------- AI 秘书对话 ----------
 const chatpanel = document.getElementById("chatpanel");
 const chatlog = document.getElementById("chatlog");
 const chatinput = document.getElementById("chatinput");
-let chatLoaded = false;
+let lastTail = "";        // 已渲染历史的"指纹", 变了才重绘
+
+function renderChat(msgs) {
+  chatlog.innerHTML = "";
+  for (const m of msgs) {
+    addMsg(m.role === "user" ? "user" : "sec", m.text, m.t);
+    for (const sg of (m.suggestions || [])) addSugg(sg);
+  }
+  scrollChat();
+}
+
+// 拉历史; 有新内容(或 force)就整体重绘 — 聊天面板永远是活的
+async function pullChat(force = false) {
+  try {
+    const d = await (await fetch("/api/chat/history")).json();
+    const msgs = d.messages;
+    const last = msgs[msgs.length - 1];
+    const tail = last ? last.t + "|" + last.role + "|" + last.text.slice(0, 60) : "";
+    if (force || tail !== lastTail) { lastTail = tail; renderChat(msgs); }
+    return true;
+  } catch (e) { return false; }
+}
+
+// 面板开着且没有进行中的气泡时, 每 10 秒自动同步一次
+setInterval(() => {
+  if (chatpanel.style.display === "block"
+      && !chatlog.querySelector(".thinking") && !chatlog.querySelector(".waiting"))
+    pullChat();
+}, 10000);
 
 function addMsg(role, text, t) {
   const m = document.createElement("div"); m.className = "msg " + role;
@@ -510,18 +541,11 @@ function scrollChat() { chatpanel.scrollTop = chatpanel.scrollHeight; }
 
 async function openChat() {
   chatpanel.style.display = "block";
-  if (!chatLoaded) {
-    chatLoaded = true;
-    try {
-      const r = await fetch("/api/chat/history"); const d = await r.json();
-      for (const m of d.messages) {
-        addMsg(m.role === "user" ? "user" : "sec", m.text, m.t);
-        for (const sg of (m.suggestions || [])) addSugg(sg);
-      }
-      const s = await (await fetch("/api/settings")).json();
-      if (!s.provider) showWizard(s);        // 还没接 LLM: 首跑向导
-    } catch (e) {}
-  }
+  await pullChat(true);                      // 每次打开都重拉, 不再只拉一次
+  try {
+    const s = await (await fetch("/api/settings")).json();
+    if (!s.provider) showWizard(s);          // 还没接 LLM: 首跑向导
+  } catch (e) {}
   scrollChat();
 }
 
@@ -593,31 +617,23 @@ async function sendChat() {
     // 而且她干完一定会写进历史 — 盯着历史等她, 回复到了自动冒出来
     think.remove();
     const note = addMsg("sec", "（连接断了，不过 Amy 可能还在后台干活。我盯着历史等她，回复到了会自动出现…）");
+    note.classList.add("waiting");
     watchForReply(note);
   }
   chatinput.disabled = false; chatinput.focus(); scrollChat();
 }
 
-// 断线恢复: 每 8 秒看一眼历史, 出现新的 Amy 回复就补渲染(最多等 6 分钟)
+// 断线恢复: 每 8 秒看一眼历史, Amy 的新回复到了就整体重绘(最多等 6 分钟)
 async function watchForReply(note) {
-  const seen = new Set([...chatlog.querySelectorAll(".msg.sec .bubble")]
-                       .map(b => b.textContent));
+  const before = lastTail;
   for (let i = 0; i < 45; i++) {
     await new Promise(r => setTimeout(r, 8000));
-    try {
-      const d = await (await fetch("/api/chat/history")).json();
-      const last = d.messages[d.messages.length - 1];
-      if (last && last.role === "secretary" && !seen.has(last.text)) {
-        note.remove();
-        addMsg("sec", last.text, last.t);
-        for (const sg of (last.suggestions || [])) addSugg(sg);
-        scrollChat();
-        return;
-      }
-    } catch (e) {}
+    await pullChat();                        // 有新内容会重绘, 等待气泡随之清掉
+    if (lastTail !== before) return;
   }
   note.querySelector(".bubble").textContent =
     "（等了 6 分钟还没有回复，这轮应该是真失败了。重发一次试试？）";
+  note.classList.remove("waiting");
 }
 
 document.getElementById("chatsend").addEventListener("click", sendChat);
