@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tellmetickme</title>
+<style>
+  :root {
+    --bg: #faf9f6; --fg: #2b2b2b; --dim: #8a8a84; --line: #e6e3dc;
+    --card: #ffffff; --accent: #b0413e; --ok: #4a7c59;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1d1f21; --fg: #d8d4cc; --dim: #7d7a72; --line: #33363a;
+            --card: #26282b; --accent: #d98880; --ok: #7fb08a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 15px/1.55 -apple-system, "Hiragino Sans", "PingFang SC", sans-serif; }
+  header { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line);
+           padding: 10px 16px; display: flex; align-items: baseline; gap: 12px; z-index: 2; }
+  header h1 { font-size: 17px; margin: 0; }
+  header .date { color: var(--dim); font-size: 13px; }
+  header .right { margin-left: auto; display: flex; gap: 8px; }
+  button { border: 1px solid var(--line); background: var(--card); color: var(--fg);
+           border-radius: 7px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+  button:hover { border-color: var(--dim); }
+  main { max-width: 760px; margin: 0 auto; padding: 12px 16px 130px; }
+  h2 { font-size: 15px; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line);
+       cursor: pointer; user-select: none; display: flex; align-items: baseline; gap: 7px; }
+  h2:hover { color: var(--accent); }
+  h2 .arrow { font-size: 11px; color: var(--dim); width: 12px; flex: none;
+              transition: transform .15s; display: inline-block; }
+  h2.folded .arrow { transform: rotate(-90deg); }
+  h2 .count { margin-left: auto; color: var(--dim); font-size: 12px; font-weight: normal; }
+  .sec-body { overflow: hidden; }
+  .sec-body.hidden { display: none; }
+  .item { display: flex; gap: 10px; padding: 7px 10px; border-radius: 9px;
+          background: var(--card); margin-bottom: 6px; border: 1px solid var(--line);
+          transition: opacity .45s, transform .45s; }
+  .item.gone { opacity: 0; transform: translateX(24px); }
+  .item input { margin-top: 4px; width: 16px; height: 16px; accent-color: var(--ok);
+                cursor: pointer; flex: none; }
+  .item .body { min-width: 0; }
+  .item .main { word-break: break-word; }
+  .item.done .main { text-decoration: line-through; color: var(--dim); }
+  .item.done { background: color-mix(in srgb, var(--card) 55%, var(--bg)); }
+  .stamp { color: var(--ok); font-size: 12px; text-decoration: none; display: inline-block; }
+  .sub { color: var(--dim); font-size: 13px; margin-top: 3px; white-space: pre-wrap;
+         word-break: break-word; }
+  .note { color: var(--dim); font-size: 13px; padding: 3px 10px; white-space: pre-wrap;
+          word-break: break-word; }
+  code { background: color-mix(in srgb, var(--line) 55%, transparent);
+         padding: 0 4px; border-radius: 4px; font-size: 0.92em; }
+  #undobar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 68px;
+             background: var(--fg); color: var(--bg); border-radius: 10px; padding: 8px 14px;
+             display: none; gap: 12px; align-items: center; font-size: 14px; z-index: 3; }
+  #undobar button { background: transparent; color: var(--bg); border: 1px solid var(--bg);
+                    border-radius: 6px; }
+  #stale { display: none; color: var(--accent); font-size: 13px; }
+  .burst { position: fixed; z-index: 99; pointer-events: none; font-size: 24px; }
+  #ctxmenu { position: fixed; background: var(--card); border: 1px solid var(--line);
+             border-radius: 9px; padding: 4px; z-index: 100;
+             box-shadow: 0 6px 20px rgba(0,0,0,.18); min-width: 110px; }
+  #ctxmenu .mi { padding: 5px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  #ctxmenu .mi:hover { background: color-mix(in srgb, var(--line) 45%, transparent); }
+  #ctxmenu .mi.danger { color: var(--accent); }
+  .editwrap { flex: 1; min-width: 0; }
+  .editbox { width: 100%; font: 14px/1.65 ui-monospace, "SF Mono", Menlo, monospace;
+             background: var(--bg); color: var(--fg); border: 1px solid var(--dim);
+             border-radius: 7px; padding: 10px 12px; resize: vertical; min-height: 150px; }
+  h2 input { font: inherit; background: var(--bg); color: var(--fg); flex: 1;
+             border: 1px solid var(--dim); border-radius: 6px; padding: 2px 8px; outline: none; }
+  .editbar { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+  .editbar .hint { color: var(--dim); font-size: 12px; margin-left: auto; }
+  .addrow { color: var(--dim); font-size: 13px; padding: 5px 10px; cursor: pointer;
+            border: 1px dashed var(--line); border-radius: 9px; margin-bottom: 6px; }
+  .addrow:hover { color: var(--fg); border-color: var(--dim); }
+  .addrow input { width: 100%; font: inherit; background: transparent; color: var(--fg);
+                  border: none; outline: none; }
+  #chatbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 8px;
+             padding: 9px 12px; background: var(--bg); border-top: 1px solid var(--line);
+             z-index: 4; align-items: center; }
+  #chatinput { flex: 1; font: 14px/1.5 inherit; background: var(--card); color: var(--fg);
+               border: 1px solid var(--line); border-radius: 9px; padding: 7px 11px;
+               outline: none; min-width: 0; }
+  #chatinput:focus { border-color: var(--dim); }
+  #chatpanel { position: fixed; left: 0; right: 0; top: 48px; bottom: 52px;
+               overflow-y: auto; background: var(--bg); border-top: 1px solid var(--line);
+               display: none; padding: 0 14px 10px; z-index: 4; }
+  #chathead { position: sticky; top: 0; display: flex; justify-content: space-between;
+              align-items: center; background: var(--bg); padding: 8px 0 6px;
+              border-bottom: 1px solid var(--line); margin-bottom: 6px;
+              font-size: 13px; color: var(--dim); }
+  .msg { margin: 7px 0; display: flex; }
+  .msg.user { justify-content: flex-end; }
+  .bubble { max-width: 84%; padding: 7px 11px; border-radius: 12px; font-size: 14px;
+            white-space: pre-wrap; word-break: break-word; line-height: 1.55; }
+  .msg.user .bubble { background: var(--ok); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.sec .bubble { background: var(--card); border: 1px solid var(--line);
+                     border-bottom-left-radius: 4px; }
+  .msg .t { color: var(--dim); font-size: 11px; align-self: flex-end; margin: 0 6px; }
+  .sugg { border: 1.5px dashed var(--ok); border-radius: 10px; padding: 8px 11px;
+          margin: 6px 0 6px 8px; font-size: 13px; background: var(--card); }
+  .sugg .where { color: var(--dim); font-size: 12px; }
+  .sugg pre { margin: 5px 0; white-space: pre-wrap; word-break: break-word;
+              font: 12px/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+  .sugg button { font-size: 12px; }
+  .sugg button.applied { color: var(--ok); border-color: var(--ok); }
+  .wizrow { display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
+  .wizrow label { font-size: 13px; }
+  .wizrow small { color: var(--dim); margin-left: 4px; }
+  .wizrow input[type=text], .wizrow input[type=password] {
+    font: 13px inherit; background: var(--bg); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; }
+  .thinking { color: var(--dim); font-size: 13px; padding: 4px 0 4px 8px; }
+  .thinking::after { content: "…"; animation: think 1.2s infinite; }
+  @keyframes think { 0% { content: "·"; } 33% { content: "··"; } 66% { content: "···"; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>今日待办</h1>
+  <span class="date" id="today"></span>
+  <span class="date" id="donecount"></span>
+  <span id="stale">文件已在别处更新，正在刷新…</span>
+  <span class="right"><button id="refresh" title="重新读取 todo.md">刷新</button></span>
+</header>
+<main id="list"></main>
+<div id="undobar"><span id="undomsg"></span><button id="undo">撤销</button></div>
+<div id="chatpanel">
+  <div id="chathead"><span>🤖 Amy</span><button id="chatclose">收起 ⌄</button></div>
+  <div id="chatlog"></div>
+</div>
+<div id="chatbar">
+  <button id="chattoggle" title="展开/收起 Amy 对话">🤖</button>
+  <input id="chatinput" placeholder="跟 Amy 说说最近要做的事…（回车发送）">
+  <button id="chatsend">发送</button>
+</div>
+
+<script>
+let MTIME = null, UNDO_TIMER = null;
+
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+// 输入法(拼音等)正在组词时的 Enter/Esc 是给输入法的(字母上屏/取消组词), 不是给我们的
+const inIME = e => e.isComposing || e.keyCode === 229;
+function md(s) {                       // 极简 markdown: 粗体/删除线/行内代码
+  s = esc(s);
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  s = s.replace(/~~([^~]+)~~/g, "<s>$1</s>");
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  return s;
+}
+const stripBox = s => s.replace(/^- \[ \] /, "").replace(/^- /, "");
+
+async function load() {
+  const r = await fetch("/api/todos"); const d = await r.json();
+  MTIME = d.mtime;
+  document.getElementById("today").textContent = d.today;
+  setDoneCount(d.done_today.length);
+  const bysec = {};                           // 已完成项按来源分区分组
+  for (const dn of d.done_today) (bysec[dn.section] ||= []).push(dn);
+  const root = document.getElementById("list");
+  root.innerHTML = "";
+  for (const sec of d.sections) {
+    const dones = bysec[sec.title] || []; delete bysec[sec.title];
+    // 空分区也显示(带「＋新增待办」行), 新建的分区才能往里加东西
+    addSection(root, sec.title, sec.items.length, body => {
+      for (const it of sec.items) body.appendChild(renderItem(sec.title, it));
+      for (const dn of dones) body.appendChild(renderDone(dn));
+      for (const nt of sec.notes) {
+        const div = document.createElement("div"); div.className = "note";
+        div.innerHTML = md([nt.text, ...nt.sub].join("\n")); body.appendChild(div);
+      }
+      body.appendChild(renderAddRow(sec.title));
+    });
+  }
+  const rest = Object.values(bysec).flat();   // 原分区已不在 todo 里的完成项, 兜底展示
+  if (rest.length) {
+    addSection(root, "✅ 其他已完成", null, body => {
+      for (const dn of rest) body.appendChild(renderDone(dn));
+    });
+  }
+}
+
+// 一个可折叠分区: 标题(箭头+名+计数) + 内容容器; 折叠状态记 localStorage, 刷新后保持
+function addSection(root, title, count, buildBody) {
+  const h = document.createElement("h2");
+  const arrow = document.createElement("span"); arrow.className = "arrow"; arrow.textContent = "▾";
+  const label = document.createElement("span"); label.innerHTML = md(title);
+  h.append(arrow, label);
+  if (count != null) {
+    const c = document.createElement("span"); c.className = "count";
+    c.textContent = count ? `${count} 项待办` : "全部完成";
+    h.append(c);
+  }
+  const body = document.createElement("div"); body.className = "sec-body";
+  buildBody(body);
+  const key = "fold:" + title;
+  if (localStorage.getItem(key) === "1") { h.classList.add("folded"); body.classList.add("hidden"); }
+  h.addEventListener("click", () => {
+    if (h.querySelector("input")) return;      // 正在改名时不折叠
+    const folded = h.classList.toggle("folded");
+    body.classList.toggle("hidden", folded);
+    localStorage.setItem(key, folded ? "1" : "0");
+  });
+  if (count != null) {                          // 真实分区才能改名 (兜底区不行)
+    h.addEventListener("dblclick", () => startRename(h, label, title));
+    h.addEventListener("contextmenu", e => {
+      e.preventDefault(); e.stopPropagation();
+      showMenu(e.clientX, e.clientY, [["✏️ 改组名", () => startRename(h, label, title)]]);
+    });
+  }
+  root.append(h, body);
+}
+
+// 双击组名(或右键→改组名): 原地变输入框
+function startRename(h, label, oldTitle) {
+  if (h.querySelector("input")) return;
+  label.style.display = "none";
+  const inp = document.createElement("input");
+  inp.value = oldTitle;
+  h.insertBefore(inp, label.nextSibling);
+  inp.focus(); inp.select();
+  const close = () => { inp.remove(); label.style.display = ""; };
+  inp.addEventListener("click", e => e.stopPropagation());
+  inp.addEventListener("keydown", async e => {
+    if (inIME(e)) return;
+    if (e.key === "Escape") { close(); return; }
+    if (e.key !== "Enter") return;
+    const v = inp.value.trim();
+    if (!v || v === oldTitle) { close(); return; }
+    const r = await fetch("/api/rename", { method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ old: oldTitle, new: v }) });
+    const res = await r.json();
+    if (!res.ok) { alert(res.error || "失败"); return; }
+    const fold = localStorage.getItem("fold:" + oldTitle);   // 折叠状态跟着名字走
+    if (fold !== null) localStorage.setItem("fold:" + v, fold);
+    load();
+  });
+  inp.addEventListener("blur", close);
+}
+
+function setDoneCount(n) {
+  document.getElementById("donecount").textContent = n ? `✅ 今日已完成 ${n} 项` : "";
+}
+
+function renderDone(dn) {
+  const div = document.createElement("div"); div.className = "item done";
+  const box = document.createElement("input"); box.type = "checkbox";
+  box.checked = true; box.disabled = true;
+  const body = document.createElement("div"); body.className = "body";
+  const main = document.createElement("div"); main.className = "main";
+  main.innerHTML = (dn.time ? `<span class="stamp">${dn.time}</span> ` : "") + md(dn.text);
+  body.appendChild(main);
+  if (dn.sub.length) {
+    const sub = document.createElement("div"); sub.className = "sub";
+    sub.innerHTML = dn.sub.map(md).join("<br>");
+    body.appendChild(sub);
+  }
+  div.append(box, body);
+  return div;
+}
+
+function renderItem(section, it) {
+  const div = document.createElement("div"); div.className = "item";
+  const box = document.createElement("input"); box.type = "checkbox";
+  const body = document.createElement("div"); body.className = "body";
+  const main = document.createElement("div"); main.className = "main";
+  main.innerHTML = md(stripBox(it.text));
+  body.appendChild(main);
+  if (it.sub.length) {
+    const sub = document.createElement("div"); sub.className = "sub";
+    sub.innerHTML = it.sub.map(s => md(s.replace(/^\s{2}/, ""))).join("<br>");
+    body.appendChild(sub);
+  }
+  div.append(box, body);
+  box.addEventListener("change", async () => {
+    box.disabled = true; div.classList.add("done");
+    const rect = box.getBoundingClientRect();
+    const r = await fetch("/api/done", { method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ section, text: it.text, mtime: MTIME }) });
+    const res = await r.json();
+    if (!res.ok) { alert(res.error || "失败"); load(); return; }
+    // 完成的条目原地划线躺着, 不消失; 满足感要留一整天
+    celebrate(rect.x + 8, rect.y + 8, [it.text, ...it.sub].join(" "));
+    const n = (document.getElementById("donecount").textContent.match(/\d+/) || [0])[0];
+    setDoneCount(parseInt(n) + 1);
+    showUndo("已完成并归档：", stripBox(it.text));
+  });
+  body.addEventListener("dblclick", () => startEdit(div, section, it));
+  div.addEventListener("contextmenu", e => {
+    e.preventDefault();
+    showMenu(e.clientX, e.clientY, [
+      ["✏️ 编辑", () => startEdit(div, section, it)],
+      ["🗑 删除", async () => {
+        const r = await fetch("/api/delete", { method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ section, text: it.text }) });
+        const res = await r.json();
+        if (!res.ok) { alert(res.error || "失败"); load(); return; }
+        showUndo("已删除：", stripBox(it.text));
+        load();
+      }, "danger"],
+    ]);
+  });
+  return div;
+}
+
+// 双击(或右键→编辑): 原地变成编辑框, 显示原始 markdown 块(主行+子行), 整块替换保存
+function startEdit(div, section, it) {
+  if (div.querySelector(".editwrap")) return;
+  const body = div.querySelector(".body");
+  body.style.display = "none";
+  const wrap = document.createElement("div"); wrap.className = "editwrap";
+  const ta = document.createElement("textarea"); ta.className = "editbox";
+  ta.value = [it.text, ...it.sub].join("\n");
+  ta.rows = Math.min(16, Math.max(6, ta.value.split("\n").length + 2));
+  const bar = document.createElement("div"); bar.className = "editbar";
+  const save = document.createElement("button"); save.textContent = "保存";
+  const cancel = document.createElement("button"); cancel.textContent = "取消";
+  const hint = document.createElement("span"); hint.className = "hint";
+  hint.textContent = "⌘↩ 保存 · Esc 取消";
+  bar.append(save, cancel, hint);
+  wrap.append(ta, bar);
+  div.appendChild(wrap);
+  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  const close = () => { wrap.remove(); body.style.display = ""; };
+  cancel.addEventListener("click", close);
+  save.addEventListener("click", async () => {
+    const r = await fetch("/api/replace", { method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ section, text: it.text, new: ta.value }) });
+    const res = await r.json();
+    if (!res.ok) { alert(res.error || "失败"); return; }
+    load();
+  });
+  ta.addEventListener("keydown", e => {
+    if (inIME(e)) return;
+    if (e.key === "Escape") close();
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) save.click();
+  });
+}
+
+// 分区尾部的「＋ 新增待办」行: 点击变输入框, 回车保存
+function renderAddRow(section) {
+  const div = document.createElement("div"); div.className = "addrow";
+  div.textContent = "＋ 新增待办";
+  div.addEventListener("click", () => {
+    if (div.querySelector("input")) return;
+    div.textContent = "";
+    const inp = document.createElement("input");
+    inp.placeholder = "写点什么, 回车保存, Esc 算了";
+    div.appendChild(inp); inp.focus();
+    const reset = () => { div.textContent = "＋ 新增待办"; };
+    inp.addEventListener("keydown", async e => {
+      if (inIME(e)) return;
+      if (e.key === "Escape") { reset(); return; }
+      if (e.key !== "Enter") return;
+      const v = inp.value.trim();
+      if (!v) { reset(); return; }
+      const r = await fetch("/api/add", { method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ section, block: v }) });
+      const res = await r.json();
+      if (!res.ok) { alert(res.error || "失败"); return; }
+      load();
+    });
+    inp.addEventListener("blur", () => { if (!inp.value.trim()) reset(); });
+  });
+  return div;
+}
+
+// 右键小菜单
+function showMenu(x, y, entries) {
+  closeMenu();
+  const m = document.createElement("div"); m.id = "ctxmenu";
+  for (const [label, fn, cls] of entries) {
+    const b = document.createElement("div"); b.className = "mi" + (cls ? " " + cls : "");
+    b.textContent = label;
+    b.addEventListener("click", () => { closeMenu(); fn(); });
+    m.appendChild(b);
+  }
+  m.style.left = Math.min(x, innerWidth - 130) + "px";
+  m.style.top = Math.min(y, innerHeight - 80) + "px";
+  document.body.appendChild(m);
+}
+function closeMenu() { document.getElementById("ctxmenu")?.remove(); }
+document.addEventListener("click", closeMenu);
+
+// 勾选庆祝: 按待办内容挑主题 emoji 池, 混入通用庆祝款
+const EMOJI_RULES = [
+  [["论文","paper","投稿","写作","稿","abstract","review","引言","discussion"], ["📄","✍️","📚","🎓","🖋","📝"]],
+  [["实验","数据","分析","建模","模型","脚本","代码","跑","R ","python"], ["🧪","📊","🔬","💻","📈","⚗️"]],
+  [["邮件","联系","回复","汇报","mail"], ["📧","✉️","💌","🕊"]],
+  [["牙","医院","诊所","体检","疫苗","HPV","针","医保"], ["🦷","💉","🏥","💪","🍀"]],
+  [["日语","单词","N1","课","复习","学习","勉強","読","聞"], ["🇯🇵","📖","🌸","✏️","🎌"]],
+  [["签证","机票","行程","参会","会议","出张","德国","visa","旅"], ["✈️","🧳","🗺","🎫","🌍"]],
+  [["买","购","取","寄","快递"], ["🛍","📦","🧾"]],
+  [["吃","饭","蛋糕","餐","食"], ["🍰","🍜","🍙","🍱"]],
+  [["运动","散步","锻炼","跑步"], ["🏃‍♀️","💪","👟","🌤"]],
+  [["报销","经费","费","钱","注册费","精算"], ["💴","🧾","💰","🪙"]],
+];
+const EMOJI_BASE = ["🎉","🎊","✨","🌟","🥳","🏆","💪","🌸","🎈","🫶"];
+
+function emojiPoolFor(text) {
+  let pool = [];
+  for (const [keys, emo] of EMOJI_RULES)
+    if (keys.some(k => text.includes(k))) pool = pool.concat(emo);
+  return pool.length ? pool.concat(EMOJI_BASE.slice(0, 4)) : EMOJI_BASE;
+}
+
+function celebrate(x, y, text = "") {
+  const pool = emojiPoolFor(text);
+  for (let i = 0; i < 8; i++) {                    // 少而清楚
+    const s = document.createElement("span"); s.className = "burst";
+    s.textContent = pool[Math.random() * pool.length | 0];
+    s.style.left = x + "px"; s.style.top = y + "px";
+    document.body.appendChild(s);
+    const ang = (i / 8) * Math.PI * 2 + Math.random() * .5;   // 均匀散开不扎堆
+    const dist = 55 + Math.random() * 60;                     // 飞得近, 停在眼前
+    const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist - 40;
+    const rot = (Math.random() * 2 - 1) * 60;                 // 只轻轻晃, 转多了看不清
+    // 三段式: 快速飞出(前15%) → 长时间悬停(15%-85%, 这段看 emoji) → 缓缓淡出
+    s.animate(
+      [{ transform: "translate(0,0) scale(.4)", opacity: .9, offset: 0 },
+       { transform: `translate(${dx}px,${dy}px) scale(1.2) rotate(${rot}deg)`,
+         opacity: 1, offset: .15 },
+       { transform: `translate(${dx}px,${dy - 10}px) scale(1.2) rotate(${rot}deg)`,
+         opacity: 1, offset: .85 },
+       { transform: `translate(${dx}px,${dy - 22}px) scale(1) rotate(${rot}deg)`,
+         opacity: 0, offset: 1 }],
+      { duration: 3200 + Math.random() * 900, easing: "cubic-bezier(.2,.65,.3,1)" }
+    ).onfinish = () => s.remove();
+  }
+}
+
+function showUndo(prefix, text) {
+  const bar = document.getElementById("undobar");
+  document.getElementById("undomsg").textContent =
+    prefix + (text.length > 24 ? text.slice(0, 24) + "…" : text);
+  bar.style.display = "flex";
+  clearTimeout(UNDO_TIMER);
+  UNDO_TIMER = setTimeout(() => bar.style.display = "none", 8000);
+}
+document.getElementById("undo").addEventListener("click", async () => {
+  await fetch("/api/undo", { method: "POST" });
+  document.getElementById("undobar").style.display = "none";
+  load();
+});
+document.getElementById("refresh").addEventListener("click", load);
+
+// ---------- AI 秘书对话 ----------
+const chatpanel = document.getElementById("chatpanel");
+const chatlog = document.getElementById("chatlog");
+const chatinput = document.getElementById("chatinput");
+let chatLoaded = false;
+
+function addMsg(role, text, t) {
+  const m = document.createElement("div"); m.className = "msg " + role;
+  const b = document.createElement("div"); b.className = "bubble"; b.innerHTML = md(text);
+  const ts = document.createElement("span"); ts.className = "t"; ts.textContent = t || "";
+  if (role === "user") m.append(ts, b); else m.append(b, ts);
+  chatlog.appendChild(m);
+  return m;
+}
+
+function addSugg(sg) {
+  const type = sg.type || "add";           // 旧历史记录没有 type 字段, 当 add
+  const c = document.createElement("div"); c.className = "sugg";
+  const w = document.createElement("div"); w.className = "where";
+  const pre = document.createElement("pre");
+  const btn = document.createElement("button");
+  let api, payload, doneLabel;
+  if (type === "move") {
+    w.textContent = `建议挪动：${sg.from} → ${sg.to}`;
+    pre.textContent = sg.block || sg.orig;
+    btn.textContent = "✔ 挪过去"; doneLabel = "✓ 已挪动";
+    api = "/api/move";
+    payload = { from: sg.from, text: sg.orig, to: sg.to, new: sg.block || "" };
+  } else if (type === "remove") {
+    w.textContent = "建议移除：" + sg.section;
+    pre.textContent = sg.orig;
+    btn.textContent = "🗑 移除"; doneLabel = "✓ 已移除";
+    api = "/api/delete";
+    payload = { section: sg.section, text: sg.orig };
+  } else {
+    w.textContent = "建议加进：" + sg.section;
+    pre.textContent = sg.block;
+    btn.textContent = "✔ 加入 todo"; doneLabel = "✓ 已加入";
+    api = "/api/add";
+    payload = { section: sg.section, block: sg.block };
+  }
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    const r = await fetch(api, { method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload) });
+    const res = await r.json();
+    if (!res.ok) { alert(res.error || "失败"); btn.disabled = false; return; }
+    btn.textContent = doneLabel; btn.classList.add("applied");
+    load();
+  });
+  c.append(w, pre, btn);
+  chatlog.appendChild(c);
+}
+
+function scrollChat() { chatpanel.scrollTop = chatpanel.scrollHeight; }
+
+async function openChat() {
+  chatpanel.style.display = "block";
+  if (!chatLoaded) {
+    chatLoaded = true;
+    try {
+      const r = await fetch("/api/chat/history"); const d = await r.json();
+      for (const m of d.messages) {
+        addMsg(m.role === "user" ? "user" : "sec", m.text, m.t);
+        for (const sg of (m.suggestions || [])) addSugg(sg);
+      }
+      const s = await (await fetch("/api/settings")).json();
+      if (!s.provider) showWizard(s);        // 还没接 LLM: 首跑向导
+    } catch (e) {}
+  }
+  scrollChat();
+}
+
+// 首跑设置向导: 选一条通道接入自己的 LLM
+function showWizard(s) {
+  if (document.getElementById("wizard")) return;
+  const det = s.detect || {};
+  const c = document.createElement("div"); c.className = "sugg"; c.id = "wizard";
+  c.innerHTML = `
+    <div class="where">🔌 接入你的 LLM，Amy 就能上岗（todo 功能不接也能用）</div>
+    <div class="wizrow">
+      <label><input type="radio" name="prov" value="claude-code"
+        ${det.claude_code ? "" : "disabled"}> Claude Code
+        <small>${det.claude_code ? "已检测到，用你的订阅，功能最全" : "未检测到 claude 命令"}</small></label>
+      <label><input type="radio" name="prov" value="api"> Anthropic API key</label>
+      <input type="password" id="wizkey" placeholder="sk-ant-…（仅存本机 config/llm.json）" style="display:none">
+      <label><input type="radio" name="prov" value="ollama"
+        ${det.ollama ? "" : "disabled"}> Ollama 本地模型
+        <small>${det.ollama ? "已检测到，零成本全离线" : "未检测到（127.0.0.1:11434）"}</small></label>
+      <input type="text" id="wizmodel" placeholder="模型（留空用默认）">
+      <button id="wizsave">保存并启用</button>
+    </div>`;
+  chatlog.appendChild(c); scrollChat();
+  c.querySelectorAll('input[name="prov"]').forEach(r =>
+    r.addEventListener("change", () => {
+      document.getElementById("wizkey").style.display =
+        r.value === "api" && r.checked ? "block" : "none";
+    }));
+  document.getElementById("wizsave").addEventListener("click", async () => {
+    const sel = c.querySelector('input[name="prov"]:checked');
+    if (!sel) { alert("先选一条通道"); return; }
+    const body = { provider: sel.value,
+                   model: document.getElementById("wizmodel").value,
+                   api_key: document.getElementById("wizkey").value };
+    const r = await fetch("/api/settings", { method: "POST",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify(body) });
+    const res = await r.json();
+    if (!res.ok) { alert(res.error || "失败"); return; }
+    c.remove();
+    addMsg("sec", "接好了，我是 Amy。跟我说说你最近在忙什么吧～");
+    scrollChat();
+  });
+}
+
+async function sendChat() {
+  const v = chatinput.value.trim();
+  if (!v) return;
+  chatinput.value = "";
+  await openChat();
+  addMsg("user", v);
+  const think = document.createElement("div"); think.className = "thinking";
+  think.textContent = "Amy 思考中";
+  chatlog.appendChild(think); scrollChat();
+  chatinput.disabled = true;
+  try {
+    const r = await fetch("/api/chat", { method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ message: v }) });
+    const d = await r.json();
+    think.remove();
+    if (d.unconfigured) { showWizard((await (await fetch("/api/settings")).json())); }
+    else if (!d.ok) { addMsg("sec", "（出错了：" + (d.error || "未知") + "）"); }
+    else {
+      addMsg("sec", d.reply);
+      for (const sg of (d.suggestions || [])) addSugg(sg);
+    }
+  } catch (e) {
+    think.remove(); addMsg("sec", "（网络出错了，再试一次？）");
+  }
+  chatinput.disabled = false; chatinput.focus(); scrollChat();
+}
+
+document.getElementById("chatsend").addEventListener("click", sendChat);
+chatinput.addEventListener("keydown", e => { if (e.key === "Enter" && !inIME(e)) sendChat(); });
+chatinput.addEventListener("focus", openChat);
+const closeChat = () => { chatpanel.style.display = "none"; };
+document.getElementById("chatclose").addEventListener("click", closeChat);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !inIME(e)) closeChat(); });
+document.getElementById("chattoggle").addEventListener("click", () => {
+  if (chatpanel.style.display === "block") closeChat();
+  else openChat();
+});
+
+setInterval(async () => {              // 30 秒轮询: 文件在别处被改就自动刷新
+  try {
+    const r = await fetch("/api/todos"); const d = await r.json();
+    if (MTIME !== null && d.mtime !== MTIME) {
+      document.getElementById("stale").style.display = "inline";
+      setTimeout(() => document.getElementById("stale").style.display = "none", 2000);
+      MTIME = d.mtime; load();
+    }
+  } catch (e) {}
+}, 30000);
+
+load();
+</script>
+</body>
+</html>

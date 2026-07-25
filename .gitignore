@@ -1,0 +1,11 @@
+runtime/
+__pycache__/
+.DS_Store
+.env
+shell/TellMeTickMe
+config/secretary.md
+config/secretary_memory.md
+config/llm.json
+data/
+README.html
+README_files/
