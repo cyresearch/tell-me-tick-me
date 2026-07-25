@@ -607,6 +607,12 @@ function showWizard(s) {
         ${det.ollama ? "" : "disabled"}> Ollama 本地模型
         <small>${det.ollama ? "已检测到，零成本全离线" : "未检测到（127.0.0.1:11434）"}</small></label>
       <input type="text" id="wizmodel" placeholder="模型（留空用默认）">
+      <div style="border-top:1px solid var(--line); padding-top:7px; margin-top:2px;">
+        可选能力（仅 Claude Code 通道，需你的 Claude 已连接 claude.ai 对应服务）：<br>
+        <label><input type="checkbox" id="wizgmail"> Gmail：搜邮件、读邮件、写草稿（<b>没有发送能力</b>，发送永远由你手动）</label>
+        <label><input type="checkbox" id="wizcal"> Google 日历：<b>只读</b>你的日程</label>
+        <label><input type="checkbox" id="wizweb"> 联网：搜索与网页阅读</label>
+      </div>
       <button id="wizsave">保存并启用</button>
     </div>`;
   chatlog.appendChild(c); scrollChat();
@@ -620,7 +626,10 @@ function showWizard(s) {
     if (!sel) { alert("先选一条通道"); return; }
     const body = { provider: sel.value,
                    model: document.getElementById("wizmodel").value,
-                   api_key: document.getElementById("wizkey").value };
+                   api_key: document.getElementById("wizkey").value,
+                   connectors: { gmail: document.getElementById("wizgmail").checked,
+                                 calendar: document.getElementById("wizcal").checked,
+                                 web: document.getElementById("wizweb").checked } };
     const r = await fetch("/api/settings", { method: "POST",
       headers: {"Content-Type": "application/json"}, body: JSON.stringify(body) });
     const res = await r.json();

@@ -411,6 +411,7 @@ class H(BaseHTTPRequestHandler):
             conf = brain.load_conf()
             self._send(200, {"provider": brain.provider(), "model": conf.get("model", ""),
                              "ollama_url": conf.get("ollama_url", ""),
+                             "connectors": conf.get("connectors", {}),
                              "has_key": bool(conf.get("api_key")), "detect": brain.detect()})
         else:
             self._send(404, {"error": "not found"})
@@ -478,6 +479,9 @@ class H(BaseHTTPRequestHandler):
                     conf[k] = req[k].strip()
             if req.get("api_key"):
                 conf["api_key"] = req["api_key"].strip()
+            if isinstance(req.get("connectors"), dict):
+                conf["connectors"] = {k: bool(v) for k, v in req["connectors"].items()
+                                      if k in ("gmail", "calendar", "calendar_write", "web")}
             brain.save_conf(conf)
             self._send(200, {"ok": True, "provider": prov})
         else:

@@ -34,18 +34,36 @@ def _model():
             or "opus")
 # 权限模型(仅 claude-code 通道): 读全开、写要人 —
 # 文件全库只读 + 仅记忆文件可写; todo 修改走 ◆todo 确认流;
-# Gmail 读+草稿(连接器本身没有发送能力, 发送永远由用户手动);
-# 日历只读(建/改/删日程不放行); 联网查询开放。
+# 连接器按 config/llm.json 的 connectors 开关(onboarding 向导可选):
+#   gmail    读+草稿(连接器本身没有发送能力, 发送永远由用户手动)
+#   calendar 只读(建/改/删日程不放行)
+#   web      联网搜索与网页阅读
 _MEM_SPEC = "//" + str(MEMORY_F).lstrip("/")
-TOOLS = ("Read", "Glob", "Grep", f"Write({_MEM_SPEC})", f"Edit({_MEM_SPEC})",
-         "WebSearch", "WebFetch",
-         "mcp__claude_ai_Gmail__search_threads", "mcp__claude_ai_Gmail__get_message",
-         "mcp__claude_ai_Gmail__get_thread", "mcp__claude_ai_Gmail__list_drafts",
-         "mcp__claude_ai_Gmail__list_labels", "mcp__claude_ai_Gmail__create_draft",
-         "mcp__claude_ai_Google_Calendar__list_calendars",
-         "mcp__claude_ai_Google_Calendar__list_events",
-         "mcp__claude_ai_Google_Calendar__get_event",
-         "mcp__claude_ai_Google_Calendar__suggest_time")
+BASE_TOOLS = ("Read", "Glob", "Grep", f"Write({_MEM_SPEC})", f"Edit({_MEM_SPEC})")
+CONNECTOR_TOOLS = {
+    "web": ("WebSearch", "WebFetch"),
+    "gmail": ("mcp__claude_ai_Gmail__search_threads", "mcp__claude_ai_Gmail__get_message",
+              "mcp__claude_ai_Gmail__get_thread", "mcp__claude_ai_Gmail__list_drafts",
+              "mcp__claude_ai_Gmail__list_labels", "mcp__claude_ai_Gmail__create_draft"),
+    "calendar": ("mcp__claude_ai_Google_Calendar__list_calendars",
+                 "mcp__claude_ai_Google_Calendar__list_events",
+                 "mcp__claude_ai_Google_Calendar__get_event",
+                 "mcp__claude_ai_Google_Calendar__suggest_time"),
+    # 日历写权限单独开关(向导不放, config/llm.json 手动开: "calendar_write": true)
+    "calendar_write": ("mcp__claude_ai_Google_Calendar__create_event",
+                       "mcp__claude_ai_Google_Calendar__update_event",
+                       "mcp__claude_ai_Google_Calendar__delete_event",
+                       "mcp__claude_ai_Google_Calendar__respond_to_event"),
+}
+
+
+def _tools():
+    out = list(BASE_TOOLS)
+    conns = brain.load_conf().get("connectors", {})
+    for name, tools in CONNECTOR_TOOLS.items():
+        if conns.get(name):
+            out.extend(tools)
+    return out
 WEEKDAYS = "一二三四五六日"
 
 
@@ -168,7 +186,7 @@ def _think_claude_code(full, persona):
         st["started"] = False
     cmd = [binpath, "-p", full, "--model", _model(),
            "--append-system-prompt", persona,
-           "--allowedTools", *TOOLS]
+           "--allowedTools", *_tools()]
     if st.get("started"):
         cmd.append("--continue")
     try:
@@ -190,8 +208,9 @@ def _think_claude_code(full, persona):
     return raw
 
 
-def chat(message, todo_text, done_lines):
-    """一轮对话。返回 (回复, 建议列表) 或抛 RuntimeError。"""
+def chat(message, todo_text, done_lines, history_user_text=None):
+    """一轮对话。history_user_text: 定时任务等系统触发时, 历史里记这条简短占位
+    而不是整段触发指令。返回 (回复, 建议列表) 或抛 RuntimeError。"""
     prov = brain.provider()
     if not prov:
         raise RuntimeError("UNCONFIGURED")   # 前端识别这个哨兵, 弹设置向导
@@ -212,7 +231,8 @@ def chat(message, todo_text, done_lines):
     persona = _persona()
 
     stamp = f"{d:%Y-%m-%d %H:%M}"
-    _append_history({"t": stamp, "role": "user", "text": message})   # 先记档, 失败轮次也留痕
+    _append_history({"t": stamp, "role": "user",
+                     "text": history_user_text or message})   # 先记档, 失败轮次也留痕
 
     if prov == "claude-code":
         raw = _think_claude_code(full, persona)
