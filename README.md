@@ -1,103 +1,153 @@
-[English](README.en.md) | 中文 | [日本語](README.ja.md)
+English | [中文](README.zh.md) | [日本語](README.ja.md)
 
 # tell-me-tick-me
 
 Tell me what to do, and tick me off when it's done.
 
-一个 **AI-native 的桌面待办小窗**:待办就是一份**纯文本 markdown**,勾掉一项自动归档进当天的日记;窗口像 QQ 一样**吸附在屏幕边缘**,鼠标碰到滑出、离开收回;里面住着 AI 秘书 **Amy**(名字来自中文谐音"A秘"= AI 秘书),跟她聊聊最近要做的事,她帮你**拆解、排序、在 deadline 撞车的时候出主意**。
+An **AI-native desktop todo** that lives in a little floating window: your tasks are **plain markdown**, checking one off archives it into today's daily note, and the window **snaps to the edge of your screen** like the classic QQ messenger, sliding out when your mouse touches the edge and tucking itself away when you leave. Inside lives **Amy**, an AI secretary (her name comes from the Chinese pun "A秘", short for AI secretary). Tell her what is on your plate and she helps you **break tasks down, put them in order, and make the hard calls when deadlines collide**.
 
-## 🌱 为什么做这个
+## 🌱 Why I built this
 
-作为博士生,我每天的日程自由度很高,也非常依赖自我管理。每天要做什么,取决于论文进度、实验状态、项目 deadline,还有临时冒出来的新任务,**很难用固定列表把每天过得标准化**。
+As a PhD student, my daily schedule has a lot of freedom and depends heavily on self-management. What I do each day is driven by paper progress, experiment status, project deadlines, and whatever new task just landed. **A fixed, standardized daily list has never worked for me.**
 
-所以我想要做一个工具,帮我把"今天该做什么"安排清楚:整理正在推进的项目,区分**今日、本周、本月和长期**,复盘已经完成的部分,少一点"想到什么就先做什么"的随意。它不只告诉我还有哪些事没做完,更要帮我看清:**现在最该推进的是什么**,哪些事看起来急其实可以缓,哪些值得投入更多,哪些做到够好就行。
+So I wanted a tool that helps me sort out "what should I do today": organize the projects in flight, separate **today, this week, this month, and long-term**, review what is already done, and be a little less "whatever comes to mind first". It should not just tell me what is unfinished. It should help me see **what deserves my attention right now**, which tasks look urgent but can wait, which ones deserve real investment, and which ones are fine at "good enough".
 
-## 🧠 任务太多的时候,和 AI 商量
+## 🧠 When there is too much, talk it through with AI
 
-几个项目的 deadline 挤在同一段时间的事,总会发生。人在任务突然堆起来的时候**很容易 panic**:不知道先做哪个,不知道从哪下手,甚至因为每件都想做好,反而迟迟动不了。
+Several deadlines landing in the same week happens to everyone. When tasks suddenly pile up, **it is easy to panic**: you do not know what to start with, where to begin, and because you want to do everything well, you end up starting nothing.
 
-这种时候我可以直接和 Amy 聊:最近有哪些任务,卡在哪里,哪些有前置条件,时间不够时精力怎么分。她不只是把任务重新排个序,还参与更实际的判断:**哪些事做到 60 分就够,哪些应该做到 80 分,哪些值得全力以赴**,在能力范围内做到尽可能好。目标是在任务密集、精力有限的时候**做出清醒、现实的选择**,而不是把所有任务都标成"重要"。
+That is when I talk to Amy directly: what is on my list, where I am stuck, what has prerequisites, how to split my energy when time is short. She does more than reorder a list. She helps with the practical judgment calls: **which tasks are fine at 60 percent, which need 80, and which deserve everything you have got**. The goal is to make **clear-headed, realistic choices** when tasks are dense and energy is limited, instead of marking everything "important".
 
-## ✨ 和普通待办软件有什么不同
+## ✨ How it differs from a normal todo app
 
-成熟的待办工具已经很多,这个项目不是想再做一个"能添加、勾选、删除"的清单。区别在于 **AI 不是附加功能,而是工作流的核心**,而且这件事落在几条实际的设计上:
+There are plenty of mature todo apps. This project is not trying to be another add-check-delete list. The difference is that **AI is not a bolt-on feature here, it is the core of the workflow**, and that shows up in concrete design decisions:
 
-- **待办就是一份纯文本 markdown**(todo.md):AI 直接读它,数据永远在自己手里,不用把生活塞进表单
-- **Amy 看得到项目背景和每日归档**:能结合真实进度拆任务、排优先级、帮复盘
-- **Amy 只提建议,落盘必须你点确认**:新增/挪动/移除三种卡片,她没有直接改动待办的权力
-- **Amy 有自己的记忆文件**:会逐渐形成对你工作方式和长期目标的理解
+- **Your todos are one plain markdown file** (todo.md): the AI reads it directly, your data stays yours, and your life never gets squeezed into forms
+- **Amy sees your project context and daily archives**: she breaks down tasks and sets priorities based on real progress, not guesses
+- **Amy only suggests, you always confirm**: add, move, and remove cards each wait for your click. She has no power to edit your todos directly
+- **Amy keeps her own memory file**: over time she builds an understanding of how you work and what you are aiming for
 
-如果你的工作方式和我类似,**任务多线并行、日程靠自己管**,它可能也适合你。
+## 👋 This might be for you
 
-## 🚀 跑起来
+If you are like me, your head keeps producing ideas and you start several projects at once, but following through is the hard part: somewhere along the way you drift from the original goal, forget where a project stands, and lose your grip on the overall picture. If that sounds familiar, this project might fit you too.
 
-要求:macOS(悬浮窗为 Mac 原生;网页部分任何系统都能跑)、Python 3.10+、可选 Xcode 命令行工具(编译悬浮壳)。
+Most of the time, **the problem is not a lack of ideas, and it is not a lack of effort**. It is that:
+
+- too many things are in flight at once;
+- new ideas keep arriving;
+- the next step of a project is fuzzy;
+- tasks get half-done with no clear record of progress;
+- attention drifts to whatever is newest, and you gradually lose track;
+- coming back after a while, it is hard to pick up the thread quickly.
+
+I want this tool to record more than "what to do today". It should **preserve the context of your work**: which project a task belongs to, why it exists, where it stands, what comes next, and how it relates to other tasks.
+
+That way, **even when something interrupts you, getting back on track is much easier**.
+
+## 🧪 Born from a workflow I have actually used for over half a year
+
+Before turning this into a standalone project, I had already been **using AI to manage my schedule, sort out tasks, track progress, and talk through work strategy for more than half a year**.
+
+Over that time, the AI and I would:
+
+- organize the day's and the week's tasks;
+- weigh priorities across projects;
+- figure out why a task was stuck;
+- split vague goals into executable next steps;
+- keep records of what each project had completed;
+- talk through trade-offs when deadlines collided;
+- review progress regularly, so no project quietly went missing in a busy stretch.
+
+This way of working clearly improved my efficiency. More importantly, it **reduced the burden of repeatedly wondering "what should I actually be doing right now"**, and made it much easier to re-enter a project after an interruption.
+
+Until now, though, all of that lived only inside my personal workspace. The task files, project records, AI conversations, and working rules grew around my own environment. It was never something other people could just install and use.
+
+What I am doing now is **distilling that workflow into a self-contained open-source tool**, shaped by real interaction habits rather than imagined features.
+
+## 🚀 Getting started
+
+Requirements: macOS (the floating window is Mac-native; the web part runs anywhere), Python 3.10+, and optionally the Xcode command line tools to build the floating shell.
 
 ```bash
 git clone https://github.com/cyresearch/tell-me-tick-me
 cd tell-me-tick-me
 ./run.sh
-# 浏览器打开 http://127.0.0.1:8765
+# open http://127.0.0.1:8765 in your browser
 ```
 
-首跑会自动生成一份示例 todo(`data/todo.md`),**开箱就能勾**。想用悬浮小窗:
+The first run generates a sample todo (`data/todo.md`), so **you can start ticking right away**. For the floating window:
 
 ```bash
-./shell/build.sh      # 编译一次
-./shell/TellMeTickMe  # 吸附在屏幕右缘, 鼠标碰边滑出
+./shell/build.sh      # compile once
+./shell/TellMeTickMe  # docks to the right edge, slides out on hover
 ```
 
-## 🔌 接入你自己的 LLM(Amy 上岗)
+## 🔌 Bring your own LLM (putting Amy to work)
 
-第一次打开对话面板,会看到设置向导,**三条通道选一条**:
+The first time you open the chat panel you will see a setup wizard. **Pick one of three channels**:
 
-| 通道 | 适合谁 | 说明 |
+| Channel | Who it is for | Notes |
 |---|---|---|
-| **Claude Code** | 已订阅 Claude 的人 | 用你自己的订阅,第一方合规;**功能最全**:Amy 能检索你指定的资料目录、自己维护记忆 |
-| **Anthropic API** | 有 API key 的人 | key **只存在本机** `config/llm.json`,不经过任何第三方 |
-| **Ollama** | 想零成本全离线的人 | 本地模型,**数据不出电脑** |
+| **Claude Code** | Claude subscribers | Uses your own subscription, first-party and compliant. **The fullest experience**: Amy can search directories you designate and maintain her own memory |
+| **Anthropic API** | API key holders | Your key **stays on your machine** in `config/llm.json`, never passes through a third party |
+| **Ollama** | Zero-cost, fully offline | Local models, **your data never leaves your computer** |
 
-**不接 LLM 也完全可以用**:勾选、归档、编辑、磁吸窗口都不依赖 AI。本项目**不做任何"订阅搭车"式的第三方接入**,三条通道全是正规门。
+**Everything except Amy works without an LLM**: checking off, archiving, editing, and the snap-to-edge window need no AI at all. This project does **no subscription-piggybacking third-party tricks**. All three channels are front doors.
 
-💡 **建议搭配语音输入**:用系统听写或你惯用的语音输入法,对着输入框把最近的事**说**给 Amy 听——商量任务这种事,说话比打字快得多。
+💡 **Tip: pair it with voice input.** Use system dictation or any voice input method and just **talk** to Amy about your week. For planning conversations, speaking beats typing.
 
-## 🧩 搭配食用:让 Amy 从第一天就懂你
+## 🧩 Goes well with: making Amy know you from day one
 
-Amy 越了解你,建议就越准。我还做过一个 [chatgpt-memory-extraction](https://github.com/cyresearch/chatgpt-memory-extraction):把你几年的 ChatGPT 对话导出数据,整理成**结构化的个人记忆档案**(时间线、人物、主题)。把生成的档案目录写进 Amy 的人设里(资料地图那一节),用 Claude Code 通道时她就能按需检索——**你的来龙去脉、正在做的事、身边的人,她从第一天就知道**,不用每次从自我介绍开始。
+The better Amy knows you, the better her advice. I also built [chatgpt-memory-extraction](https://github.com/cyresearch/chatgpt-memory-extraction): it turns years of your exported ChatGPT conversations into a **structured personal memory archive** (timelines, people, topics). Point Amy's persona file at the archive directory, and with the Claude Code channel she can search it on demand. **Your history, your ongoing work, the people around you: she knows it from day one**, and you never have to introduce yourself from scratch again.
 
-## ⚙️ 配置(环境变量,都有默认值)
+## ⚙️ Configuration (environment variables, all with defaults)
 
-| 变量 | 默认 | 说明 |
+| Variable | Default | Meaning |
 |---|---|---|
-| `DESK_TODO_FILE` | `data/todo.md` | 待办文件(可指向你自己的 markdown) |
-| `DESK_DAILY_DIR` | `data/daily` | 每日归档目录 |
-| `DESK_PORT` | `8765` | 端口 |
-| `DESK_BIND` | `127.0.0.1` | 改 `0.0.0.0` 开放局域网(注意共享网络的风险) |
-| `TMTM_CLAUDE_MODEL` | `opus` | Claude Code 通道的模型 |
+| `DESK_TODO_FILE` | `data/todo.md` | The todo file (point it at your own markdown) |
+| `DESK_DAILY_DIR` | `data/daily` | Daily archive directory |
+| `DESK_PORT` | `8765` | Port |
+| `DESK_BIND` | `127.0.0.1` | Set `0.0.0.0` for LAN access (mind shared networks) |
+| `TMTM_CLAUDE_MODEL` | `opus` | Model for the Claude Code channel |
 
-Amy 的人设在 `config/secretary.example.md`,复制成 `config/secretary.md` 后按注释填上你自己的情况(它和 Amy 的记忆、你的 LLM 配置都**不进 git**)。
+Amy's persona lives in `config/secretary.example.md`. Copy it to `config/secretary.md` and fill in your own situation following the comments. It, Amy's memory, and your LLM config are all **kept out of git**.
 
-## 🛡 它怎么保护你的 todo.md
+## 🛡 How it protects your todo.md
 
-- **手动编辑永远优先**:每次操作前重读文件,以磁盘上的内容为准
-- **写回只做行块级修改**,其余格式一字节不动
-- 每天第一次写操作前**自动备份**到 `runtime/backups/`
-- **所有操作可撤销**;AI 的每条建议都要人点确认
-- 找不到条目(文件刚被别处编辑过)会拒绝操作并提示刷新,**不乱删**
+- **Hand edits always win**: the file is re-read before every operation, disk is the source of truth
+- **Writes are surgical, line-block level only**: everything else stays byte-identical
+- **Automatic backup** to `runtime/backups/` before the first write of each day
+- **Every operation is undoable**, and every AI suggestion waits for a human click
+- If an item cannot be found (the file was just edited elsewhere), it refuses and asks you to refresh. **It never guesses and deletes**
+
+## 🔄 A project that evolves through real use
+
+This project will not be built from an imagined feature checklist. **I keep using it every day for my own study, research, and project management**, and I maintain and improve it based on what real use teaches me:
+
+- which features genuinely reduce cognitive load;
+- which reminders just create new pressure;
+- when the AI should step in proactively;
+- which decisions AI can assist with, and which must stay with the user;
+- how to record context so that re-entering a project actually gets easier;
+- how to balance "more systematic" against "not building a system too heavy to use".
+
+In other words, **this is not a demo that gets finished and left on GitHub**. It is a personal working system that keeps being tested and iterated through long-term daily use.
+
+It serves my real needs first, and I hope it grows into a tool that helps more people **organize their thinking, keep their projects continuous, and actually push their ideas forward**. ✨
 
 ## 🗺 Roadmap
 
-已完成:
+Done:
 
-- [x] todo.md 勾选归档 + 撤销 + 备份 + 分区折叠 + 窗口内编辑
-- [x] 悬浮窗:四向磁吸、自由拉伸、双抓手、位置记忆、找回保底
-- [x] Amy:三通道 LLM、专属记忆、新增/挪动/移除三式建议卡、首跑向导
+- [x] todo.md check-off and archive, undo, backups, collapsible sections, in-window editing
+- [x] Floating window: four-edge snapping, free resizing, dual grips, position memory, never-lost safeguards
+- [x] Amy: three LLM channels, private memory, add/move/remove suggestion cards, first-run wizard
 
-计划中:
+Planned:
 
-- [ ] **起床叫醒 call 和睡前提醒**:一天从 Amy 的问候开始,以今天的复盘结束
-- [ ] **接入手机聊天软件**(Discord 等):在外面也能跟 Amy 安排任务,回家桌面同步
-- [ ] 日历读写、墨水屏/旧设备副屏展示
+- [ ] **Morning wake-up call and bedtime reminder**: start the day with Amy's greeting, end it with a review
+- [ ] **Messaging app integration** (Discord and friends): plan with Amy on the go, desktop stays in sync
+- [ ] Calendar read/write, e-ink and spare-device display mode
 
 ## License
 
