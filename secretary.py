@@ -26,7 +26,12 @@ MEMORY_F = ROOT / "config/secretary_memory.md"
 HISTORY_F = RUNTIME / "chat_history.json"
 HIST_CAP = 200
 
-MODEL = os.environ.get("TMTM_CLAUDE_MODEL", os.environ.get("DESK_SECRETARY_MODEL", "opus"))
+def _model():
+    """模型优先级: 环境变量 > config/llm.json 的 model > 默认 opus。每轮现读, 改配置即生效。"""
+    return (os.environ.get("TMTM_CLAUDE_MODEL")
+            or os.environ.get("DESK_SECRETARY_MODEL")
+            or brain.load_conf().get("model")
+            or "opus")
 # 权限模型(仅 claude-code 通道): 全库只读 + 仅记忆文件可写; todo 修改走 ◆todo 确认流
 _MEM_SPEC = "//" + str(MEMORY_F).lstrip("/")
 TOOLS = ("Read", "Glob", "Grep", f"Write({_MEM_SPEC})", f"Edit({_MEM_SPEC})")
@@ -136,7 +141,7 @@ def _think_claude_code(full, persona):
     st = _state()
     if st.get("started") and _rolled_over(st.get("last_ts")):
         st["started"] = False
-    cmd = [binpath, "-p", full, "--model", MODEL,
+    cmd = [binpath, "-p", full, "--model", _model(),
            "--append-system-prompt", persona,
            "--allowedTools", *TOOLS]
     if st.get("started"):
