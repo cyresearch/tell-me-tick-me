@@ -589,9 +589,35 @@ async function sendChat() {
       for (const sg of (d.suggestions || [])) addSugg(sg);
     }
   } catch (e) {
-    think.remove(); addMsg("sec", "（网络出错了，再试一次？）");
+    // 连接被掐(浏览器引擎对长请求有 60 秒上限, 或服务重启), 但 Amy 后台可能还在干活,
+    // 而且她干完一定会写进历史 — 盯着历史等她, 回复到了自动冒出来
+    think.remove();
+    const note = addMsg("sec", "（连接断了，不过 Amy 可能还在后台干活。我盯着历史等她，回复到了会自动出现…）");
+    watchForReply(note);
   }
   chatinput.disabled = false; chatinput.focus(); scrollChat();
+}
+
+// 断线恢复: 每 8 秒看一眼历史, 出现新的 Amy 回复就补渲染(最多等 6 分钟)
+async function watchForReply(note) {
+  const seen = new Set([...chatlog.querySelectorAll(".msg.sec .bubble")]
+                       .map(b => b.textContent));
+  for (let i = 0; i < 45; i++) {
+    await new Promise(r => setTimeout(r, 8000));
+    try {
+      const d = await (await fetch("/api/chat/history")).json();
+      const last = d.messages[d.messages.length - 1];
+      if (last && last.role === "secretary" && !seen.has(last.text)) {
+        note.remove();
+        addMsg("sec", last.text, last.t);
+        for (const sg of (last.suggestions || [])) addSugg(sg);
+        scrollChat();
+        return;
+      }
+    } catch (e) {}
+  }
+  note.querySelector(".bubble").textContent =
+    "（等了 6 分钟还没有回复，这轮应该是真失败了。重发一次试试？）";
 }
 
 document.getElementById("chatsend").addEventListener("click", sendChat);
