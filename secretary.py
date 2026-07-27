@@ -132,7 +132,29 @@ def mark_applied(t, idx):
     return False
 
 
-BLOCK_TYPES = {"◆todo": "add", "◆todo-move": "move", "◆todo-remove": "remove"}
+BLOCK_TYPES = {"◆todo": "add", "◆todo-move": "move", "◆todo-remove": "remove",
+               "◆alarm-skip": "alarm_skip", "◆alarm-skip-cancel": "alarm_skip_cancel"}
+ALARM_SKIP_F = RUNTIME / "alarm_skip.json"
+
+
+def _default_skip_date():
+    """没写日期时: 中午前说的算今晨, 中午后说的算明晨。"""
+    d = datetime.datetime.now()
+    return d.date() if d.hour < 12 else d.date() + datetime.timedelta(days=1)
+
+
+def _apply_alarm_skips(suggestions):
+    """豁免类建议不出卡片, 服务端直接生效(她本人明确要求的, 无需二次确认)。"""
+    rest = []
+    for sg in suggestions:
+        if sg.get("type") == "alarm_skip":
+            ALARM_SKIP_F.parent.mkdir(parents=True, exist_ok=True)
+            ALARM_SKIP_F.write_text(json.dumps({"skip_for": sg["date"]}))
+        elif sg.get("type") == "alarm_skip_cancel":
+            ALARM_SKIP_F.unlink(missing_ok=True)
+        else:
+            rest.append(sg)
+    return rest
 
 
 def _after_colon(s):
@@ -160,6 +182,8 @@ def parse_reply(raw):
             cur["to"] = _after_colon(s)
         elif not cur["lines"] and s.startswith(("原文:", "原文：")):
             cur["orig"] = _after_colon(s)
+        elif not cur["lines"] and s.startswith(("日期:", "日期：")):
+            cur["date"] = _after_colon(s)
         elif s.startswith("- ") and not cur["lines"]:
             cur["lines"].append(s)
         elif (s.startswith("- ") or ln.startswith(("  ", "\t"))) and cur["lines"]:
@@ -180,6 +204,9 @@ def parse_reply(raw):
         elif c["type"] == "remove" and (c["section"] or c["from"]) and c["orig"]:
             out.append({"type": "remove", "section": c["section"] or c["from"],
                         "orig": c["orig"]})
+        elif c["type"] in ("alarm_skip", "alarm_skip_cancel"):
+            out.append({"type": c["type"],
+                        "date": c.get("date") or f"{_default_skip_date()}"})
     return "\n".join(reply_lines).strip(), out
 
 
@@ -265,6 +292,7 @@ def chat(message, todo_text, done_lines, history_user_text=None):
         raise RuntimeError("Amy 没回话, 再试一次?")
 
     reply, suggestions = parse_reply(raw)
+    suggestions = _apply_alarm_skips(suggestions)
     _append_history({"t": stamp, "role": "secretary", "text": reply,
                      "suggestions": suggestions})
     return reply, suggestions

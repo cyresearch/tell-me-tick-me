@@ -64,9 +64,26 @@ def compute(onset, conf, today):
     return alarm, buses[pick], round(slept, 2)
 
 
+SKIP_F = ROOT / "runtime/alarm_skip.json"
+
+
 def main():
     conf = json.loads(CONF_F.read_text())
     today = datetime.date.today()
+    try:
+        skip = json.loads(SKIP_F.read_text())
+        if skip.get("skip_for") == f"{today}":
+            SKIP_F.unlink(missing_ok=True)          # 一次性, 用掉即焚
+            PLAN_F.parent.mkdir(parents=True, exist_ok=True)
+            PLAN_F.write_text(json.dumps({"date": f"{today}", "skipped": True}))
+            tok = os.environ.get("AMY_DISCORD_TOKEN")
+            ch = sleep_sync._find_channel()
+            if tok and ch:                           # 不含 "ALARM " 关键词, 手机端不会设钟
+                amy_discord.send(tok, ch, "⏸ 今晨闹钟已按你的吩咐豁免, 睡到自然醒~")
+            print("今晨豁免, 不设闹钟")
+            return
+    except FileNotFoundError:
+        pass
     onset = None
     channel = sleep_sync._find_channel()
     if channel:
