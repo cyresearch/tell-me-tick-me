@@ -143,11 +143,14 @@ Done:
 - [x] Floating window: four-edge snapping, free resizing, dual grips, position memory, never-lost safeguards
 - [x] Amy: three LLM channels, private memory, add/move/remove suggestion cards, first-run wizard
 
+- [x] **Morning briefing, bedtime reminder and check-up**: timers wake Amy so she reaches out first; stay silent past bedtime and she pings until you answer
+- [x] **Discord DM duty daemon**: plan with Amy on the go, same memory as the desktop, green presence dot
+- [x] Optional Gmail (read+draft) and read-only Calendar connectors
+
 Planned:
 
-- [ ] **Morning wake-up call and bedtime reminder**: start the day with Amy's greeting, end it with a review
-- [ ] **Messaging app integration** (Discord and friends): plan with Amy on the go, desktop stays in sync
-- [ ] Calendar read/write, e-ink and spare-device display mode
+- [ ] A real phone-call wake-up (needs a phone line)
+- [ ] E-ink and spare-device display mode
 
 ## License
 

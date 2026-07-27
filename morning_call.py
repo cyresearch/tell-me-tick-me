@@ -6,6 +6,7 @@
 悬浮窗的未读红点会亮; 配了 Discord 的话同时推到手机。
 """
 import datetime
+import json
 import os
 import pathlib
 import sys
@@ -13,6 +14,22 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import secretary
 import server as srv
+
+
+def _last_night_note():
+    """昨夜的睡眠日志(night_escalate 写的), 给晨报一点上下文。"""
+    log = pathlib.Path(__file__).resolve().parent / "runtime/sleep_log.jsonl"
+    try:
+        last = json.loads(log.read_text().splitlines()[-1])
+    except Exception:
+        return ""
+    if last.get("night") != f"{datetime.date.today() - datetime.timedelta(days=1)}":
+        return ""
+    if last.get("responded"):
+        return f"睡前提醒后 {last.get('responded_at', '?')[11:16]} 有回音"
+    if last.get("escalated"):
+        return "睡前提醒一直没回音, 00:30 查岗了(可能睡了, 也可能熬大了)"
+    return ""
 
 
 def main():
@@ -26,6 +43,9 @@ def main():
               f"3. 结合 todo 给出今天最值得推进的 1-3 件事(有临近 deadline 的优先)\n"
               f"4. 最后问她今天打算怎么安排\n"
               f"整体简短温暖, 像秘书的晨间简报, 不要长篇大论。")
+    night = _last_night_note()
+    if night:
+        prompt += f"\n【昨夜睡眠记录】{night}\n如果显示熬夜了, 温柔关心一句, 别说教。"
     reply, _ = secretary.chat(prompt, todo_text, done,
                               history_user_text="(每日早安定时器)")
     print(reply)
