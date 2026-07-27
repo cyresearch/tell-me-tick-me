@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Amy 的 Discord 值班员: 在专属频道收消息、回消息, 手机上随时找她。
+"""Amy 的 Discord 值班员: 专属频道或私聊 DM 收发消息, 手机上随时找她。
 
 配置(环境变量, 没配就不上岗):
   AMY_DISCORD_TOKEN    Discord bot 的 token(建一个叫 Amy 的新 bot, 和其他 bot 分开)
-  AMY_DISCORD_CHANNEL  Amy 专属频道的 ID
+  AMY_DISCORD_CHANNEL  频道模式: Amy 专属频道的 ID
+  AMY_DISCORD_USER     DM 模式: 你自己的用户 ID(bot 会自动开一条私聊线;
+                       需要你和 bot 至少同在一个服务器)
+  两者给一个即可; 都给则优先频道。
 
 轮询模式(每 5 秒), 不需要公网; 消息进出都走与桌面同一份聊天历史,
-手机聊的桌面能看到, 桌面聊的手机也有记录。
+手机聊的桌面能看到, 桌面聊的手机也有记录。DM 里说话不需要 @。
 """
 import json
 import os
@@ -21,7 +24,27 @@ import server as srv
 
 TOK = os.environ.get("AMY_DISCORD_TOKEN")
 CHANNEL = os.environ.get("AMY_DISCORD_CHANNEL")
+USER = os.environ.get("AMY_DISCORD_USER")
 STATE_F = pathlib.Path(__file__).resolve().parent / "runtime/discord_state.json"
+
+
+def resolve_channel(tok, channel=None, user=None):
+    """频道 ID 直接用; 只给用户 ID 则向 Discord 开一条 DM 线并返回它的频道 ID。"""
+    if channel:
+        return channel
+    if not user:
+        return None
+    r = subprocess.run(
+        ["curl", "-s", "--max-time", "15", "-X", "POST",
+         "-H", f"Authorization: Bot {tok}",
+         "-H", "Content-Type: application/json",
+         "-d", json.dumps({"recipient_id": str(user)}),
+         "https://discord.com/api/v10/users/@me/channels"],
+        capture_output=True, text=True, timeout=30)
+    try:
+        return json.loads(r.stdout).get("id")
+    except json.JSONDecodeError:
+        return None
 
 
 def api(path, extra=None):
@@ -62,21 +85,28 @@ def save_state(st):
 
 
 def main():
-    if not (TOK and CHANNEL):
-        print("AMY_DISCORD_TOKEN / AMY_DISCORD_CHANNEL 没配, Discord 值班不启动")
+    if not TOK or not (CHANNEL or USER):
+        print("AMY_DISCORD_TOKEN + (AMY_DISCORD_CHANNEL 或 AMY_DISCORD_USER) 没配, "
+              "Discord 值班不启动")
+        return
+    channel = resolve_channel(TOK, CHANNEL, USER)
+    if not channel:
+        print("DM 频道解析失败: 确认 bot 和你同在一个服务器、你的隐私设置允许成员私信")
         return
     st = state()
-    print(f"Amy Discord 值班中 · channel={CHANNEL}", flush=True)
+    print(f"Amy Discord 值班中 · {'DM' if not CHANNEL else 'channel'}={channel}", flush=True)
     while True:
         try:
             after = f"?after={st['last_id']}" if st.get("last_id") else "?limit=1"
-            msgs = api(f"/channels/{CHANNEL}/messages{after}")
+            msgs = api(f"/channels/{channel}/messages{after}")
             if isinstance(msgs, list) and msgs:
                 for m in sorted(msgs, key=lambda x: int(x["id"])):
                     st["last_id"] = m["id"]
                     save_state(st)
                     if m.get("author", {}).get("bot"):
                         continue                      # 自己(或其它 bot)的消息不接
+                    if USER and m.get("author", {}).get("id") != str(USER):
+                        continue                      # 只听主人本人
                     text = (m.get("content") or "").strip()
                     if not text:
                         continue
@@ -91,7 +121,7 @@ def main():
                     if sugg:
                         reply += ("\n\n(有 " + str(len(sugg)) +
                                   " 条待办建议, 在桌面小窗里点确认)")
-                    send(TOK, CHANNEL, reply)
+                    send(TOK, channel, reply)
         except Exception as e:
             print("loop error:", e, flush=True)
         time.sleep(5)

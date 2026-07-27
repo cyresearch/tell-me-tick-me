@@ -27,15 +27,18 @@ def main():
               f"4. 最后问她今天打算怎么安排\n"
               f"整体简短温暖, 像秘书的晨间简报, 不要长篇大论。")
     reply, _ = secretary.chat(prompt, todo_text, done,
-                              history_user_text="(每日 9:30 的早安定时器)")
+                              history_user_text="(每日早安定时器)")
     print(reply)
 
-    # 配了 Discord 就同步推一份到手机
+    # 配了 Discord 就同步推一份到手机(频道或 DM 均可)
     tok = os.environ.get("AMY_DISCORD_TOKEN")
     ch = os.environ.get("AMY_DISCORD_CHANNEL")
-    if tok and ch:
+    user = os.environ.get("AMY_DISCORD_USER")
+    if tok and (ch or user):
         import amy_discord
-        amy_discord.send(tok, ch, reply)
+        channel = amy_discord.resolve_channel(tok, ch, user)
+        if channel:
+            amy_discord.send(tok, channel, reply)
 
 
 if __name__ == "__main__":
