@@ -8,6 +8,7 @@ claude-code 通道功能最全: Amy 有用户资料库的只读权限(Read/Glob/
 这里解析成结构化建议返回页面, 用户点确认才落盘 — AI 永远不直接动 todo。
 """
 import datetime
+import fcntl
 import json
 import os
 import pathlib
@@ -181,6 +182,18 @@ def _think_claude_code(full, persona):
     if not binpath:
         raise RuntimeError("找不到 claude 命令 (装 Claude Code, 或在设置里换一条通道)")
     HOME.mkdir(parents=True, exist_ok=True)
+    # 会话锁: 聊天/DM/定时任务共用一条 --continue 会话线, 并发会串线
+    # (实测: 晨报进程与用户消息同时进场, 回复答非所问) — 全部排队串行
+    lock = open(RUNTIME / "secretary.lock", "w")
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    try:
+        return _think_claude_code_locked(binpath, full, persona)
+    finally:
+        fcntl.flock(lock, fcntl.LOCK_UN)
+        lock.close()
+
+
+def _think_claude_code_locked(binpath, full, persona):
     st = _state()
     if st.get("started") and _rolled_over(st.get("last_ts")):
         st["started"] = False
