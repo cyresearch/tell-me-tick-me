@@ -17,22 +17,35 @@ import server as srv
 
 
 def _last_night_note():
-    """昨夜的睡眠日志(night_escalate 写的), 给晨报一点上下文。"""
+    """昨夜的睡眠情况: 手表真实数据(sleep_sync) + 睡前提醒的回音记录。"""
     log = pathlib.Path(__file__).resolve().parent / "runtime/sleep_log.jsonl"
     try:
-        last = json.loads(log.read_text().splitlines()[-1])
+        rows = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
     except Exception:
         return ""
-    if last.get("night") != f"{datetime.date.today() - datetime.timedelta(days=1)}":
+    ynight = f"{datetime.date.today() - datetime.timedelta(days=1)}"
+    row = next((r for r in rows if r.get("night") == ynight), None)
+    if not row:
         return ""
-    if last.get("responded"):
-        return f"睡前提醒后 {last.get('responded_at', '?')[11:16]} 有回音"
-    if last.get("escalated"):
-        return "睡前提醒一直没回音, 00:30 查岗了(可能睡了, 也可能熬大了)"
-    return ""
+    bits = []
+    w = row.get("watch")
+    if w:
+        h, m = divmod(w["asleep_min"], 60)
+        bits.append(f"手表实测: {w['bed']} 入睡, {w['wake']} 醒, 实睡 {h}h{m:02d}m, "
+                    f"深睡 {w['deep_min']}m, 夜醒 {w['awake_min']}m")
+    if row.get("responded"):
+        bits.append(f"睡前提醒后 {row.get('responded_at', '?')[11:16]} 有回音")
+    elif row.get("escalated"):
+        bits.append("睡前提醒一直没回音, 00:30 查岗了")
+    return "; ".join(bits)
 
 
 def main():
+    try:                                    # 手表睡眠数据: 快捷指令 10:00 发, 这里 10:30 收
+        import sleep_sync
+        sleep_sync.sync()
+    except Exception as e:
+        print(f"(sleep_sync 跳过: {e})")
     srv.ensure_todo()
     todo_text, _ = srv.read_todo()
     done = [f"- {d['time']} 【{d['section']}】{d['text']}" for d in srv.parse_done_today()]
