@@ -106,7 +106,7 @@ def main():
                     if m.get("author", {}).get("bot"):
                         continue                      # 自己(或其它 bot)的消息不接
                     if USER and m.get("author", {}).get("id") != str(USER):
-                        continue                      # 只听主人本人
+                        continue                      # 只听配置的这一位用户
                     text = (m.get("content") or "").strip()
                     if not text:
                         continue
