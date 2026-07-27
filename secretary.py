@@ -98,6 +98,12 @@ def _persona():
     return "你是 Amy, 一个干练简洁的中文工作秘书, 帮用户整理待办、排轻重缓急。"
 
 
+def log_error(msg):
+    """失败的轮次也留痕: 错误作为 secretary 条目进历史, 刷新后仍可见, 不再像已读不回。"""
+    stamp = f"{datetime.datetime.now():%Y-%m-%d %H:%M}"
+    _append_history({"t": stamp, "role": "secretary", "text": f"(出错了: {msg})"})
+
+
 def history():
     try:
         return json.loads(HISTORY_F.read_text())

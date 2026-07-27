@@ -466,6 +466,7 @@ class H(BaseHTTPRequestHandler):
                     self._send(200, {"ok": False, "unconfigured": True,
                                      "error": "还没接入 LLM"})
                 else:
+                    secretary.log_error(str(e))
                     self._send(500, {"ok": False, "error": str(e)})
         elif self.path == "/api/settings":
             prov = (req.get("provider") or "").strip()

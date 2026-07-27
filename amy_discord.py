@@ -234,10 +234,13 @@ def main():
                     todo_text, _ = srv.read_todo()
                     done = [f"- {d['time']} 【{d['section']}】{d['text']}"
                             for d in srv.parse_done_today()]
+                    print(f"DM 收到: {text[:50]}", flush=True)
                     try:
                         reply, sugg = secretary.chat(text, todo_text, done)
                     except Exception as e:
+                        secretary.log_error(str(e))
                         reply, sugg = f"(出错了: {e})", []
+                    print(f"DM 已回: {reply[:50]}", flush=True)
                     if sugg:
                         reply += ("\n\n(有 " + str(len(sugg)) +
                                   " 条待办建议, 在桌面小窗里点确认)")
