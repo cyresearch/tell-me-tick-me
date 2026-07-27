@@ -76,15 +76,19 @@ def _parse_lines(text, anchor=None):
     return out
 
 
-def _fetch_latest_payload(channel):
-    """频道里最新一条能解析出睡眠行的消息(正文或 txt 附件)。"""
+def _fetch_latest_payload(channel, max_age_h=20):
+    """频道里最新一条能解析出睡眠行的消息(正文或 txt 附件)。
+
+    max_age_h: 保鲜期。日常同步用 20h(旧导出不当新账记);
+    凌晨闹钟计算用 2h(只认刚发的早导出, 绝不拿昨天中午的旧数据定今早闹钟)。
+    """
     msgs = amy_discord.api(f"/channels/{channel}/messages?limit=10") or []
     now = datetime.datetime.now(datetime.timezone.utc)
     for m in msgs:                                   # Discord 返回新→旧
         try:                                          # 短格式行靠消息发送日定日期
             ts = datetime.datetime.fromisoformat(m["timestamp"])
-            if (now - ts).total_seconds() > 20 * 3600:
-                continue                              # 保鲜期: 旧消息(如几天没戴表)不当新账记
+            if (now - ts).total_seconds() > max_age_h * 3600:
+                continue
             anchor = ts.astimezone().date()
         except Exception:
             anchor = None
