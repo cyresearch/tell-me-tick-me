@@ -44,16 +44,32 @@ def _find_channel():
     return None
 
 
-def _parse_lines(text):
-    """'开始,结束,阶段' 行 → [(start_dt, end_dt, stage), ...]"""
+def _parse_lines(text, anchor=None):
+    """'开始,结束,阶段' 行 → [(start_dt, end_dt, stage), ...]
+
+    两种时间格式都认:
+      完整 ISO: 2026-07-18T03:02:48+09:00
+      短时刻:   03:02(需 anchor=消息发送日; ≥15:00 算前一天, 跨午夜自动处理)
+    """
+    def _dt(raw):
+        raw = raw.strip()
+        try:
+            return datetime.datetime.fromisoformat(raw)
+        except ValueError:
+            pass
+        if anchor:
+            t = datetime.datetime.strptime(raw, "%H:%M").time()
+            day = anchor - datetime.timedelta(days=1) if t.hour >= 15 else anchor
+            return datetime.datetime.combine(day, t)
+        raise ValueError(raw)
+
     out = []
     for ln in text.splitlines():
         parts = ln.strip().split(",")
         if len(parts) < 3:
             continue
         try:
-            s = datetime.datetime.fromisoformat(parts[0].strip())
-            e = datetime.datetime.fromisoformat(parts[1].strip())
+            s, e = _dt(parts[0]), _dt(parts[1])
         except ValueError:
             continue
         out.append((s, e, ",".join(parts[2:]).strip()))
@@ -64,12 +80,16 @@ def _fetch_latest_payload(channel):
     """频道里最新一条能解析出睡眠行的消息(正文或 txt 附件)。"""
     msgs = amy_discord.api(f"/channels/{channel}/messages?limit=10") or []
     for m in msgs:                                   # Discord 返回新→旧
+        try:                                          # 短格式行靠消息发送日定日期
+            anchor = datetime.datetime.fromisoformat(m["timestamp"]).astimezone().date()
+        except Exception:
+            anchor = None
         if m.get("attachments"):
             url = m["attachments"][0]["url"]
             r = subprocess.run(["curl", "-s", "-L", url], capture_output=True, timeout=60)
-            segs = _parse_lines(r.stdout.decode("utf-8-sig", "replace"))
+            segs = _parse_lines(r.stdout.decode("utf-8-sig", "replace"), anchor)
         else:
-            segs = _parse_lines(m.get("content", ""))
+            segs = _parse_lines(m.get("content", ""), anchor)
         if len(segs) >= 3:
             return segs
     return []
