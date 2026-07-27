@@ -85,7 +85,9 @@ def main():
                 if asleep:
                     onset = asleep[0]
     alarm, bus, slept = compute(onset, conf, today)
-    line = (f"ALARM {alarm:%H:%M} (赶 {bus:%H:%M} 的巴士"
+    # 12 小时制 + AM: iOS「获取日期」解析 "10:53" 会歧义成晚上(实测 22:53);
+    # 系统闹钟永远在早晨(封顶 10:53), 带 AM 后解析唯一
+    line = (f"ALARM {alarm:%I:%M %p} (赶 {bus:%H:%M} 的巴士"
             + (f", 入睡 {onset:%H:%M}, 预计实睡 {slept}h)" if onset else ", 无新睡眠数据走兜底)"))
     print(line)
     PLAN_F.parent.mkdir(parents=True, exist_ok=True)
