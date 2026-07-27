@@ -61,15 +61,20 @@ def api(path, extra=None):
 
 
 def send(tok, channel, text):
-    """长文本分条发(Discord 单条上限 2000)。供本模块与 morning_call 复用。"""
+    """长文本分条发(Discord 单条上限 2000)。供本模块与 morning_call 复用。
+
+    用 JSON body + stdin 传参: -F 表单模式会把文本里的分号当属性分隔符,
+    消息带 ';' 就发不出去(实测踩坑)。
+    """
     for i in range(0, max(len(text), 1), 1900):
+        payload = json.dumps({"content": text[i:i + 1900]}, ensure_ascii=False)
         subprocess.run(
             ["curl", "-s", "--max-time", "30",
              "-H", f"Authorization: Bot {tok}",
-             "-F", "payload_json=" + json.dumps({"content": text[i:i + 1900]},
-                                                ensure_ascii=False),
+             "-H", "Content-Type: application/json",
+             "--data-binary", "@-",
              f"https://discord.com/api/v10/channels/{channel}/messages"],
-            capture_output=True, timeout=60)
+            input=payload.encode(), capture_output=True, timeout=60)
 
 
 def state():
