@@ -204,18 +204,63 @@ def append_daily(section_title, block_lines):
     return p, text
 
 
-def locate_block(lines, section_title, main_line):
-    """在指定分区里按主行全文精确匹配, 返回 (块首行号, 块尾行号+1) 或 None。"""
-    in_section = False
-    for i, ln in enumerate(lines):
+_NORM_MAP = {0xFF08: "(", 0xFF09: ")", 0xFF01: "!", 0xFF1F: "?",
+             0xFF1A: ":", 0xFF1B: ";", 0xFF0C: ",", 0xFF5E: "~"}
+
+
+def _norm(s):
+    """行文本规范化: 去 checkbox 前缀/加粗星号/反引号/全部空白, 全角标点转半角。
+    用于容错匹配 — AI 引用原文时常掉前缀、改标点、丢星号。"""
+    s = s.strip()
+    for pre in ("- [ ] ", "- "):
+        if s.startswith(pre):
+            s = s[len(pre):]
+            break
+    s = s.translate(_NORM_MAP).replace("**", "").replace("`", "")
+    return "".join(s.split())
+
+
+def _iter_blocks(lines):
+    """(分区名, 块首行号, 块尾行号+1, 主行) 遍历全文所有顶层条目。"""
+    section = None
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
         if ln.startswith("## "):
-            in_section = ln[3:].strip() == section_title
+            section = ln[3:].strip()
+            i += 1
             continue
-        if in_section and ln == main_line:
+        if section is not None and ln.startswith("- "):
             j = i + 1
             while j < len(lines) and lines[j].startswith(("  ", "\t")) and lines[j].strip():
                 j += 1
+            yield section, i, j, ln
+            i = j
+            continue
+        i += 1
+
+
+def locate_block(lines, section_title, main_line):
+    """定位条目块, 三级容错: ①整行精确 ②规范化等值 ③唯一子串。
+    ②③先在指定分区找, 找不到再全文找; 候选多于一个一律放弃(宁报错不乱改)。"""
+    blocks = list(_iter_blocks(lines))
+    for sec, i, j, ln in blocks:                     # ① 精确
+        if sec == section_title and ln == main_line:
             return i, j
+    needle = _norm(main_line)
+    if len(needle) < 6:
+        return None
+    in_section = [(i, j, _norm(ln)) for sec, i, j, ln in blocks if sec == section_title]
+    anywhere = [(i, j, _norm(ln)) for sec, i, j, ln in blocks]
+    for pool in (in_section, anywhere):
+        eq = [(i, j) for i, j, n in pool if n == needle]
+        if len(eq) == 1:                             # ② 规范化等值
+            return eq[0]
+        sub = [(i, j) for i, j, n in pool if needle in n]
+        if len(sub) == 1:                            # ③ 唯一子串(引用了半截长条目)
+            return sub[0]
+        if len(eq) > 1 or len(sub) > 1:
+            return None                              # 有歧义, 放弃
     return None
 
 
