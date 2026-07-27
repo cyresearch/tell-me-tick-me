@@ -28,7 +28,7 @@ There are plenty of mature todo apps. What sets this one apart: **AI is the core
 
 - **Your todos are one plain markdown file** (todo.md): the AI reads it directly, your data stays yours, and your life never gets squeezed into forms
 - **Amy sees your project context and daily archives**: she breaks down tasks and sets priorities based on real progress, not guesses
-- **Amy only suggests, you always confirm**: add, move, and remove cards each wait for your click. She has no power to edit your todos directly
+- **Amy only suggests, you always confirm** (a click on the desktop, or a "confirm" reply in DM): add, move and remove all wait for your OK. She has no power to edit your todos directly
 - **Amy keeps her own memory file**: over time she builds an understanding of how you work and what you are aiming for
 
 ## 👋 This might be for you
@@ -105,7 +105,7 @@ The first time you open the chat panel you will see a setup wizard. **Pick one o
 Give Amy a Discord bot and she moves into your phone:
 
 - **Direct messages**: one-on-one DM, no channel to create, no @-mentions; she only answers you (filtered by user id)
-- **The same Amy as on the desktop**: one memory, one history across both; suggestions she makes in DM get confirmed back on the desktop
+- **The same Amy as on the desktop**: one memory, one history across both; when she suggests todo changes, **replying "confirm" applies them on the spot**, no computer needed
 - **She reaches out first**: the daily briefing lands on the desktop and in DM at the same time, and the goodnight note and the late-night check-up use this line too
 - **A green presence dot**: the daemon keeps a gateway heartbeat, so her avatar shows online
 

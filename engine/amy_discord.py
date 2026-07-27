@@ -15,6 +15,7 @@ import base64
 import json
 import os
 import pathlib
+import re
 import secrets
 import socket
 import ssl
@@ -32,6 +33,85 @@ TOK = os.environ.get("AMY_DISCORD_TOKEN")
 CHANNEL = os.environ.get("AMY_DISCORD_CHANNEL")
 USER = os.environ.get("AMY_DISCORD_USER")
 STATE_F = pathlib.Path(__file__).resolve().parents[1] / "runtime/discord_state.json"
+PENDING_F = pathlib.Path(__file__).resolve().parents[1] / "runtime/dm_pending.json"
+PENDING_TTL = 6 * 3600
+TYPE_GLYPH = {"add": "➕", "move": "➡️", "remove": "🗑"}
+
+
+def _sugg_line(i, sg):
+    if sg.get("type") == "move":
+        core = f"{sg['from']} → {sg['to']}: {(sg.get('block') or sg['orig']).splitlines()[0]}"
+    elif sg.get("type") == "remove":
+        core = f"{sg['section']}: {sg['orig']}"
+    else:
+        core = f"{sg['section']}: {sg['block'].splitlines()[0]}"
+    return f"{i}. {TYPE_GLYPH.get(sg.get('type', 'add'), '➕')} {core}"
+
+
+def store_pending(sugg):
+    """记下这批建议, 等她在 DM 里回「确认」;同时给出编号清单文本。"""
+    import secretary
+    t = ""
+    h = secretary.history()
+    if h and h[-1].get("role") == "secretary":
+        t = h[-1].get("t", "")
+    PENDING_F.parent.mkdir(parents=True, exist_ok=True)
+    PENDING_F.write_text(json.dumps({"t": t, "ts": time.time(), "suggestions": sugg},
+                                    ensure_ascii=False))
+    lines = [_sugg_line(i + 1, sg) for i, sg in enumerate(sugg)]
+    return ("\n\n📋 待办建议:\n" + "\n".join(lines)
+            + "\n回「确认」全部应用, 「确认 1 3」只应用选中的, 「取消」放弃"
+            + "(桌面端也可点卡片)")
+
+
+_CONFIRM_ALL = {"确认", "全部确认", "確認", "confirm", "confirm all"}
+_CANCEL = {"取消", "算了", "不用了", "cancel", "やめて"}
+
+
+def try_confirm(text):
+    """她的 DM 若是确认/取消指令, 直接执行并返回回复文本; 否则返回 None 走正常聊天。"""
+    import secretary
+    import server as srv
+    s = text.strip().lower()
+    try:
+        pend = json.loads(PENDING_F.read_text())
+    except Exception:
+        return None
+    if time.time() - pend.get("ts", 0) > PENDING_TTL or not pend.get("suggestions"):
+        return None
+    if s in _CANCEL:
+        PENDING_F.unlink(missing_ok=True)
+        return "好, 这批建议作废。"
+    picked = None
+    if s in {w.lower() for w in _CONFIRM_ALL}:
+        picked = list(range(len(pend["suggestions"])))
+    else:
+        m = re.fullmatch(r"(?:确认|確認|confirm)?[\s,，、]*((?:\d+[\s,，、]*)+)", s)
+        if m and (s[0].isdigit() or s.startswith(("确认", "確認", "confirm"))):
+            picked = [int(n) - 1 for n in re.findall(r"\d+", m.group(1))]
+    if picked is None:
+        return None
+    out, rest = [], []
+    for i, sg in enumerate(pend["suggestions"]):
+        if i not in picked:
+            rest.append(sg)
+            continue
+        if sg.get("type") == "move":
+            body, code = srv.move_item(sg["from"], sg["orig"], sg["to"], sg.get("block", ""))
+        elif sg.get("type") == "remove":
+            body, code = srv.delete_item(sg["section"], sg["orig"])
+        else:
+            body, code = srv.add_item(sg["section"], sg["block"])
+        if body.get("ok"):
+            out.append(f"✓ {_sugg_line(i + 1, sg)}")
+            secretary.mark_applied(pend.get("t", ""), i)
+        else:
+            out.append(f"✗ {_sugg_line(i + 1, sg)}\n   ({body.get('error', '失败')})")
+    if rest:
+        PENDING_F.write_text(json.dumps({**pend, "suggestions": rest}, ensure_ascii=False))
+    else:
+        PENDING_F.unlink(missing_ok=True)
+    return "\n".join(out) if out else "没有可应用的编号。"
 
 
 def resolve_channel(tok, channel=None, user=None):
@@ -235,6 +315,11 @@ def main():
                     done = [f"- {d['time']} 【{d['section']}】{d['text']}"
                             for d in srv.parse_done_today()]
                     print(f"DM 收到: {text[:50]}", flush=True)
+                    confirm_reply = try_confirm(text)
+                    if confirm_reply is not None:
+                        print(f"DM 确认指令: {confirm_reply[:50]}", flush=True)
+                        send(TOK, channel, confirm_reply)
+                        continue
                     try:
                         reply, sugg = secretary.chat(text, todo_text, done)
                     except Exception as e:
@@ -242,8 +327,7 @@ def main():
                         reply, sugg = f"(出错了: {e})", []
                     print(f"DM 已回: {reply[:50]}", flush=True)
                     if sugg:
-                        reply += ("\n\n(有 " + str(len(sugg)) +
-                                  " 条待办建议, 在桌面小窗里点确认)")
+                        reply += store_pending(sugg)
                     send(TOK, channel, reply)
         except Exception as e:
             print("loop error:", e, flush=True)
