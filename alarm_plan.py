@@ -77,9 +77,13 @@ def main():
         if nights:
             latest = max(nights)
             if latest >= today - datetime.timedelta(days=1):   # 必须是今夜, 旧夜不算
-                asleep = sorted(s for s, st in nights[latest] if _is_asleep(st))
+                # 短格式无日期, 昨晨片段会被错标成"今晨未来时刻"; 未来的开始时刻=幻影, 丢弃
+                now = datetime.datetime.now()
+                asleep = sorted(s.replace(tzinfo=None) if s.tzinfo else s
+                                for s, st in nights[latest] if _is_asleep(st))
+                asleep = [s for s in asleep if s <= now]
                 if asleep:
-                    onset = asleep[0].replace(tzinfo=None)
+                    onset = asleep[0]
     alarm, bus, slept = compute(onset, conf, today)
     line = (f"ALARM {alarm:%H:%M} (赶 {bus:%H:%M} 的巴士"
             + (f", 入睡 {onset:%H:%M}, 预计实睡 {slept}h)" if onset else ", 无新睡眠数据走兜底)"))
