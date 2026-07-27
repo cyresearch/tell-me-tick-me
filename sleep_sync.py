@@ -79,9 +79,13 @@ def _parse_lines(text, anchor=None):
 def _fetch_latest_payload(channel):
     """频道里最新一条能解析出睡眠行的消息(正文或 txt 附件)。"""
     msgs = amy_discord.api(f"/channels/{channel}/messages?limit=10") or []
+    now = datetime.datetime.now(datetime.timezone.utc)
     for m in msgs:                                   # Discord 返回新→旧
         try:                                          # 短格式行靠消息发送日定日期
-            anchor = datetime.datetime.fromisoformat(m["timestamp"]).astimezone().date()
+            ts = datetime.datetime.fromisoformat(m["timestamp"])
+            if (now - ts).total_seconds() > 20 * 3600:
+                continue                              # 保鲜期: 旧消息(如几天没戴表)不当新账记
+            anchor = ts.astimezone().date()
         except Exception:
             anchor = None
         if m.get("attachments"):
