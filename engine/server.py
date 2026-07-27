@@ -25,7 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import brain
 import secretary
 
-ROOT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 TODO = pathlib.Path(os.environ.get("DESK_TODO_FILE", ROOT / "data/todo.md"))
 DAILY = pathlib.Path(os.environ.get("DESK_DAILY_DIR", ROOT / "data/daily"))
 PORT = int(os.environ.get("DESK_PORT", "8765"))

@@ -19,11 +19,13 @@ import os
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+_HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+sys.path.insert(0, str(_HERE.parent / "engine"))
 import amy_discord
 import sleep_sync
 
-ROOT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 CONF_F = ROOT / "config/bus_schedule.json"
 PLAN_F = ROOT / "runtime/alarm_plan.json"
 
@@ -68,6 +70,9 @@ SKIP_F = ROOT / "runtime/alarm_skip.json"
 
 
 def main():
+    if not CONF_F.exists():
+        print("没有 config/bus_schedule.json (参考 config/bus_schedule.example.json), 智能闹钟不启动")
+        return
     conf = json.loads(CONF_F.read_text())
     today = datetime.date.today()
     try:

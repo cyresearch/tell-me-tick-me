@@ -31,7 +31,7 @@ import server as srv
 TOK = os.environ.get("AMY_DISCORD_TOKEN")
 CHANNEL = os.environ.get("AMY_DISCORD_CHANNEL")
 USER = os.environ.get("AMY_DISCORD_USER")
-STATE_F = pathlib.Path(__file__).resolve().parent / "runtime/discord_state.json"
+STATE_F = pathlib.Path(__file__).resolve().parents[1] / "runtime/discord_state.json"
 
 
 def resolve_channel(tok, channel=None, user=None):

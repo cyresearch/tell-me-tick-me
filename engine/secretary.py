@@ -17,7 +17,7 @@ import time
 
 import brain
 
-ROOT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "runtime"
 STATE_F = RUNTIME / "secretary_state.json"
 HOME = RUNTIME / "secretary_home"          # claude-code 会话隔离用的专属 cwd

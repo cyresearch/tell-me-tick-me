@@ -15,10 +15,12 @@ import pathlib
 import subprocess
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+_HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+sys.path.insert(0, str(_HERE.parent / "engine"))
 import amy_discord
 
-ROOT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 LOG = ROOT / "runtime/sleep_log.jsonl"
 CH_CACHE = ROOT / "runtime/sleep_channel.json"
 CHANNEL_NAME = os.environ.get("AMY_SLEEP_CHANNEL", "amy-sleep")

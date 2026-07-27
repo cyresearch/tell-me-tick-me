@@ -10,11 +10,13 @@ import pathlib
 import sys
 import time
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+_HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+sys.path.insert(0, str(_HERE.parent / "engine"))
 import amy_discord
 import secretary
 
-ROOT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 STATE = ROOT / "runtime/night_state.json"
 LOG = ROOT / "runtime/sleep_log.jsonl"
 

@@ -4,13 +4,17 @@ English | [中文](README.zh.md) | [日本語](README.ja.md)
 
 Tell me what to do, and tick me off when it's done.
 
-An **AI-native desktop todo** that lives in a little floating window: your tasks are **plain markdown**, checking one off archives it into today's daily note, and the window **snaps to the edge of your screen** like the classic QQ messenger, sliding out when your mouse touches the edge and tucking itself away when you leave. Inside lives **Amy**, an AI secretary (her name comes from the Chinese pun "A秘", short for AI secretary). Tell her what is on your plate and she helps you **break tasks down, put them in order, and make the hard calls when deadlines collide**.
+An **AI-native desktop todo app** with an AI secretary living inside: **Amy** (her name comes from the Chinese pun "A秘", short for AI secretary).
+
+The todo window **snaps to the edge of your screen** like the classic QQ messenger, sliding out when your mouse touches it and tucking away when you leave, so it **takes no screen space**. Talk to Amy regularly about what is coming up and she helps you **break tasks down, put them in order, and make the hard calls when deadlines collide**; she keeps her own **long-term memory**, so she understands your long-term plans and how each project is going. Grant her web search, mail access or calendar permissions and she gets even better at understanding and supporting your work and life. Every task you tick off is archived into today's daily note automatically, ready for reviewing your progress.
+
+Also recommended: hook Amy into **Discord** (or any chat app you like), so your phone can reach her anytime. Every morning Amy messages you to **remind you of the day's todos**, in the evening she **reviews the day and says goodnight**, and when you go silent late at night she **tells you to go to bed**; with an **Apple Watch** connected, she even creates your phone's wake-up alarm **automatically**, from **when you actually fell asleep** and your transit timetable.
 
 ## 🌱 Why I built this
 
 As a PhD student, my daily schedule has a lot of freedom and depends heavily on self-management. What I do each day is driven by paper progress, experiment status, project deadlines, and whatever new task just landed. **A fixed, standardized daily list has never worked for me.**
 
-So I wanted a tool that helps me sort out "what should I do today": organize the projects in flight, separate **today, this week, this month, and long-term**, review what is already done, and be a little less "whatever comes to mind first". It should not just tell me what is unfinished. It should help me see **what deserves my attention right now**, which tasks look urgent but can wait, which ones deserve real investment, and which ones are fine at "good enough".
+So I wanted a tool that helps me sort out "what should I do today": organize the projects in flight, separate **today, this week, this month, and long-term**, review what is already done, and be a little less "whatever comes to mind first". Listing what is unfinished is the easy part. It should help me see **what deserves my attention right now**, which tasks look urgent but can wait, which ones deserve real investment, and which ones are fine at "good enough".
 
 ## 🧠 When there is too much, talk it through with AI
 
@@ -20,7 +24,7 @@ That is when I talk to Amy directly: what is on my list, where I am stuck, what 
 
 ## ✨ How it differs from a normal todo app
 
-There are plenty of mature todo apps. This project is not trying to be another add-check-delete list. The difference is that **AI is not a bolt-on feature here, it is the core of the workflow**, and that shows up in concrete design decisions:
+There are plenty of mature todo apps. What sets this one apart: **AI is the core of the workflow**, and that shows up in concrete design decisions:
 
 - **Your todos are one plain markdown file** (todo.md): the AI reads it directly, your data stays yours, and your life never gets squeezed into forms
 - **Amy sees your project context and daily archives**: she breaks down tasks and sets priorities based on real progress, not guesses
@@ -31,7 +35,7 @@ There are plenty of mature todo apps. This project is not trying to be another a
 
 If you are like me, your head keeps producing ideas and you start several projects at once, but following through is the hard part: somewhere along the way you drift from the original goal, forget where a project stands, and lose your grip on the overall picture. If that sounds familiar, this project might fit you too.
 
-Most of the time, **the problem is not a lack of ideas, and it is not a lack of effort**. It is that:
+Most of the time, **there is no shortage of ideas or effort**. What gets in the way:
 
 - too many things are in flight at once;
 - new ideas keep arriving;
@@ -96,6 +100,33 @@ The first time you open the chat panel you will see a setup wizard. **Pick one o
 
 💡 **Tip: pair it with voice input.** Use system dictation or any voice input method and just **talk** to Amy about your week. For planning conversations, speaking beats typing.
 
+## 📱 Amy in your pocket: Discord DM (optional)
+
+Give Amy a Discord bot and she moves into your phone:
+
+- **Direct messages**: one-on-one DM, no channel to create, no @-mentions; she only answers you (filtered by user id)
+- **The same Amy as on the desktop**: one memory, one history across both; suggestions she makes in DM get confirmed back on the desktop
+- **She reaches out first**: the daily briefing lands on the desktop and in DM at the same time, and the goodnight note and the late-night check-up use this line too
+- **A green presence dot**: the daemon keeps a gateway heartbeat, so her avatar shows online
+
+Two settings are all it takes: a bot token and your user id (env vars `AMY_DISCORD_TOKEN` / `AMY_DISCORD_USER`); the daemon is `engine/amy_discord.py`. The sleep data in the next section also travels through a Discord channel, so this is its prerequisite.
+
+## ⏰ A smart wake-up alarm from sleep tracking: your alarm should not be decided before you have even fallen asleep
+
+The plan is usually to sleep at 23:30 and set a 7:30 alarm for a full eight hours. But you lie awake, fall asleep an hour later than planned, and the fixed alarm fires anyway, quietly cutting into your sleep. Pushing it later means missing the bus, the metro, the train, or your must-leave time when driving, so you end up juggling sleep length, wake-up time and departure time in your head.
+
+This project also includes a smart alarm that **knows when you actually fell asleep last night, and when you have to leave this morning**.
+
+Tell Me, Tick Me reads the sleep your Apple Watch actually recorded, combines it with your target sleep length, your timetable (bus, metro, train, or your must-leave time when driving; you can send Amy your usual departures in advance) and how long you need to get ready, then computes a wake-up time that protects your rest without missing your ride, and creates the iPhone alarm automatically. **The later you fall asleep, the later the departure it aims for.**
+
+The sleep suite also includes:
+
+- **A goodnight note at 23:30**, acknowledging what you finished today; stay silent and Amy **checks on you at 00:30**
+- **Measured sleep in the morning briefing** (when you fell asleep, real sleep time, deep sleep)
+- **Skipping takes one sentence**: tell Amy "no alarm tomorrow" and that single morning is exempt
+
+Sleep in peace. Amy does the math. Setup guide: [docs/sleep-and-alarm.md](docs/sleep-and-alarm.md) (needs an Apple Watch and a Discord bot; entirely optional).
+
 ## 🧩 Goes well with: making Amy know you from day one
 
 The better Amy knows you, the better her advice. I also built [chatgpt-memory-extraction](https://github.com/cyresearch/chatgpt-memory-extraction): it turns years of your exported ChatGPT conversations into a **structured personal memory archive** (timelines, people, topics). Point Amy's persona file at the archive directory, and with the Claude Code channel she can search it on demand. **Your history, your ongoing work, the people around you: she knows it from day one**, and you never have to introduce yourself from scratch again.
@@ -131,7 +162,7 @@ This project will not be built from an imagined feature checklist. **I keep usin
 - how to record context so that re-entering a project actually gets easier;
 - how to balance "more systematic" against "not building a system too heavy to use".
 
-In other words, **this is not a demo that gets finished and left on GitHub**. It is a personal working system that keeps being tested and iterated through long-term daily use.
+In other words, this is a **personal working system, tested and iterated through long-term daily use**, and it keeps evolving after it lands on GitHub.
 
 It serves my real needs first, and I hope it grows into a tool that helps more people **organize their thinking, keep their projects continuous, and actually push their ideas forward**. ✨
 
@@ -146,6 +177,7 @@ Done:
 - [x] **Morning briefing, bedtime reminder and check-up**: timers wake Amy so she reaches out first; stay silent past bedtime and she pings until you answer
 - [x] **Discord DM duty daemon**: plan with Amy on the go, same memory as the desktop, green presence dot
 - [x] Optional Gmail (read+draft) and read-only Calendar connectors
+- [x] **The full sleep suite**: goodnight note and check-up, watch data flowing back, an alarm set from actual sleep onset, one-sentence exemptions
 
 Planned:
 

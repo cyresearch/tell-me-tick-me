@@ -12,12 +12,14 @@ import os
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+_HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+sys.path.insert(0, str(_HERE.parent / "engine"))
 import amy_discord
 import secretary
 import server as srv
 
-STATE = pathlib.Path(__file__).resolve().parent / "runtime/night_state.json"
+STATE = pathlib.Path(__file__).resolve().parents[1] / "runtime/night_state.json"
 
 
 def main():

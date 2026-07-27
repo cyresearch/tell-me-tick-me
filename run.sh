@@ -5,4 +5,4 @@ set -euo pipefail
 cd "$(dirname "$0")"
 export DESK_PORT="${DESK_PORT:-8765}"
 export DESK_BIND="${DESK_BIND:-127.0.0.1}"
-exec python3 server.py
+exec python3 engine/server.py

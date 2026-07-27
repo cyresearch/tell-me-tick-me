@@ -11,14 +11,16 @@ import os
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+_HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+sys.path.insert(0, str(_HERE.parent / "engine"))
 import secretary
 import server as srv
 
 
 def _last_night_note():
     """昨夜的睡眠情况: 手表真实数据(sleep_sync) + 睡前提醒的回音记录。"""
-    log = pathlib.Path(__file__).resolve().parent / "runtime/sleep_log.jsonl"
+    log = pathlib.Path(__file__).resolve().parents[1] / "runtime/sleep_log.jsonl"
     try:
         rows = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
     except Exception:

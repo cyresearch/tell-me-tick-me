@@ -15,7 +15,7 @@ import shutil
 import subprocess
 import urllib.request
 
-ROOT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 LLM_CONF = ROOT / "config/llm.json"
 RUNTIME = ROOT / "runtime"
 HIST_CAP = 40
