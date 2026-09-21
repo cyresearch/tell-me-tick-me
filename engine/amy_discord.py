@@ -8,6 +8,9 @@
                        需要你和 bot 至少同在一个服务器)
   两者给一个即可; 都给则优先频道。
 
+语音条会先转写成文字再交给 Amy(见 engine/stt.py), 所以手机上按住说话
+就行, 不必打字; 她会先回一句「听到:...」让你确认听得对不对。
+
 轮询模式(每 5 秒), 不需要公网; 消息进出都走与桌面同一份聊天历史,
 手机聊的桌面能看到, 桌面聊的手机也有记录。DM 里说话不需要 @。
 """
@@ -28,6 +31,7 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import secretary
 import server as srv
+import stt
 
 TOK = os.environ.get("AMY_DISCORD_TOKEN")
 CHANNEL = os.environ.get("AMY_DISCORD_CHANNEL")
@@ -35,6 +39,7 @@ USER = os.environ.get("AMY_DISCORD_USER")
 STATE_F = pathlib.Path(__file__).resolve().parents[1] / "runtime/discord_state.json"
 PENDING_F = pathlib.Path(__file__).resolve().parents[1] / "runtime/dm_pending.json"
 PENDING_TTL = 6 * 3600
+VOICE_DIR = pathlib.Path(__file__).resolve().parents[1] / "runtime/voice_inbox"
 TYPE_GLYPH = {"add": "➕", "move": "➡️", "remove": "🗑"}
 
 
@@ -270,6 +275,44 @@ def presence_loop(tok):
             backoff = min(backoff * 2, 300)
 
 
+def _hear(m, tok, channel):
+    """语音条 -> 文字。没有语音附件就返回空串。
+
+    转写完即删本地音频: Discord 上原件还在, 本地不留第二份。
+    """
+    auds = [a for a in m.get("attachments", [])
+            if (a.get("content_type") or "").startswith("audio")]
+    if not auds:
+        return ""
+    if not stt.available():
+        send(tok, channel, "🎧 收到语音条了, 不过这台机器还没装转写(mlx-whisper), "
+                           "暂时听不了 —— 打字告诉我也一样。")
+        return ""
+    heard = []
+    VOICE_DIR.mkdir(parents=True, exist_ok=True)
+    for a in auds:
+        suffix = pathlib.Path(a.get("filename") or "").suffix or ".ogg"
+        dst = VOICE_DIR / f"{m['id']}-{a['id']}{suffix}"
+        try:
+            subprocess.run(["curl", "-s", "-L", "--max-time", "60",
+                            "-o", str(dst), a["url"]], timeout=90, check=True)
+            line = stt.transcribe(str(dst))
+        except Exception as e:
+            print(f"[voice] 取语音失败: {e}", flush=True)
+            line = ""
+        finally:
+            dst.unlink(missing_ok=True)
+        if line:
+            heard.append(line)
+    if not heard:
+        send(tok, channel, "🎧 这条语音我没听清, 再说一遍或者打几个字都行。")
+        return ""
+    text = " ".join(heard)
+    print(f"DM 语音转写: {text[:50]}", flush=True)
+    send(tok, channel, f"🎧 听到:「{text}」")   # 先回显, 听岔了你能当场纠正
+    return text
+
+
 def state():
     try:
         return json.loads(STATE_F.read_text())
@@ -308,6 +351,9 @@ def main():
                     if USER and m.get("author", {}).get("id") != str(USER):
                         continue                      # 只听配置的这一位用户
                     text = (m.get("content") or "").strip()
+                    heard = _hear(m, TOK, channel)     # 语音条先转写成文字
+                    if heard:
+                        text = f"{text} {heard}".strip()
                     if not text:
                         continue
                     srv.ensure_todo()

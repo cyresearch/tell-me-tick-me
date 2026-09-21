@@ -107,9 +107,10 @@ Give Amy a Discord bot and she moves into your phone:
 - **Direct messages**: one-on-one DM, no channel to create, no @-mentions; she only answers you (filtered by user id)
 - **The same Amy as on the desktop**: one memory, one history across both; when she suggests todo changes, **replying "confirm" applies them on the spot**, no computer needed
 - **She reaches out first**: the daily briefing lands on the desktop and in DM at the same time
+- **Just talk**: send a voice message from your phone and it is transcribed before it reaches her; she echoes "🎧 heard: ..." first, so a mishearing is caught on the spot
 - **A green presence dot**: the daemon keeps a gateway heartbeat, so her avatar shows online
 
-Two settings are all it takes: a bot token and your user id (env vars `AMY_DISCORD_TOKEN` / `AMY_DISCORD_USER`); the daemon is `engine/amy_discord.py`. The sleep data in the next section also travels through a Discord channel, so this is its prerequisite.
+Two settings are all it takes: a bot token and your user id (env vars `AMY_DISCORD_TOKEN` / `AMY_DISCORD_USER`); the daemon is `engine/amy_discord.py`. Voice messages additionally need `mlx-whisper` (Apple Silicon, `pip install mlx-whisper`); if another project already has it, point `AMY_STT_PYTHON` at that venv and the model cache is shared, so nothing is downloaded twice (see `engine/stt.py`). The sleep data in the next section also travels through a Discord channel, so this is its prerequisite.
 
 ## ⏰ A smart wake-up alarm from sleep tracking: your alarm should not be decided before you have even fallen asleep
 
@@ -175,6 +176,7 @@ Done:
 
 - [x] **Morning briefing**: a timer wakes Amy so she reaches out first, and the day starts with her greeting
 - [x] **Discord DM duty daemon**: plan with Amy on the go, same memory as the desktop, green presence dot
+- [x] **Voice input**: voice messages are transcribed (mlx-whisper) and echoed back before she answers
 - [x] Optional Gmail (read+draft) and read-only Calendar connectors
 - [x] **The full sleep suite**: watch data flowing back, an alarm set from actual sleep onset, one-sentence exemptions
 
