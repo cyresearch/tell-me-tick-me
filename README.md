@@ -8,7 +8,7 @@ An **AI-native desktop todo app** with an AI secretary living inside: **Amy** (h
 
 The todo window **snaps to the edge of your screen** like the classic QQ messenger, sliding out when your mouse touches it and tucking away when you leave, so it **takes no screen space**. Talk to Amy regularly about what is coming up and she helps you **break tasks down, put them in order, and make the hard calls when deadlines collide**; she keeps her own **long-term memory**, so she understands your long-term plans and how each project is going. Grant her web search, mail access or calendar permissions and she gets even better at understanding and supporting your work and life. Every task you tick off is archived into today's daily note automatically, ready for reviewing your progress.
 
-Also recommended: hook Amy into **Discord** (or any chat app you like), so your phone can reach her anytime. Every morning Amy messages you to **remind you of the day's todos**, in the evening she **reviews the day and says goodnight**, and when you go silent late at night she **tells you to go to bed**; with an **Apple Watch** connected, she even creates your phone's wake-up alarm **automatically**, from **when you actually fell asleep** and your transit timetable.
+Also recommended: hook Amy into **Discord** (or any chat app you like), so your phone can reach her anytime. Every morning Amy messages you to **remind you of the day's todos**; with an **Apple Watch** connected, she even creates your phone's wake-up alarm **automatically**, from **when you actually fell asleep** and your transit timetable.
 
 ## 🌱 Why I built this
 
@@ -106,7 +106,7 @@ Give Amy a Discord bot and she moves into your phone:
 
 - **Direct messages**: one-on-one DM, no channel to create, no @-mentions; she only answers you (filtered by user id)
 - **The same Amy as on the desktop**: one memory, one history across both; when she suggests todo changes, **replying "confirm" applies them on the spot**, no computer needed
-- **She reaches out first**: the daily briefing lands on the desktop and in DM at the same time, and the goodnight note and the late-night check-up use this line too
+- **She reaches out first**: the daily briefing lands on the desktop and in DM at the same time
 - **A green presence dot**: the daemon keeps a gateway heartbeat, so her avatar shows online
 
 Two settings are all it takes: a bot token and your user id (env vars `AMY_DISCORD_TOKEN` / `AMY_DISCORD_USER`); the daemon is `engine/amy_discord.py`. The sleep data in the next section also travels through a Discord channel, so this is its prerequisite.
@@ -121,7 +121,6 @@ Tell Me, Tick Me reads the sleep your Apple Watch actually recorded, combines it
 
 The sleep suite also includes:
 
-- **A goodnight note at 23:30**, acknowledging what you finished today; stay silent and Amy **checks on you at 00:30**
 - **Measured sleep in the morning briefing** (when you fell asleep, real sleep time, deep sleep)
 - **Skipping takes one sentence**: tell Amy "no alarm tomorrow" and that single morning is exempt
 
@@ -174,10 +173,10 @@ Done:
 - [x] Floating window: four-edge snapping, free resizing, dual grips, position memory, never-lost safeguards
 - [x] Amy: three LLM channels, private memory, add/move/remove suggestion cards, first-run wizard
 
-- [x] **Morning briefing, bedtime reminder and check-up**: timers wake Amy so she reaches out first; stay silent past bedtime and she pings until you answer
+- [x] **Morning briefing**: a timer wakes Amy so she reaches out first, and the day starts with her greeting
 - [x] **Discord DM duty daemon**: plan with Amy on the go, same memory as the desktop, green presence dot
 - [x] Optional Gmail (read+draft) and read-only Calendar connectors
-- [x] **The full sleep suite**: goodnight note and check-up, watch data flowing back, an alarm set from actual sleep onset, one-sentence exemptions
+- [x] **The full sleep suite**: watch data flowing back, an alarm set from actual sleep onset, one-sentence exemptions
 
 Planned:
 

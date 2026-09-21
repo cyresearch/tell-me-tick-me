@@ -1,14 +1,12 @@
 # 睡眠管理与智能闹钟:搭建指南
 
-这套可选功能让 Amy 参与你的睡眠:晚上道晚安、深夜查岗、用 Apple Watch 的真实睡眠数据说话,并按你**实际入睡的时间**自动设第二天的 iPhone 起床闹钟。
+这套可选功能让 Amy 参与你的睡眠:用 Apple Watch 的真实睡眠数据说话,并按你**实际入睡的时间**自动设第二天的 iPhone 起床闹钟。
 
 需要:Apple Watch(睡眠记录)、已配好的 Discord bot(见 README 的 Discord 部分)、iPhone 快捷指令。全程不装第三方 app,数据只经过你自己的 Discord 服务器。
 
 ## 全景图
 
 ```
-23:30  night_call      Amy 道晚安, 请你回一句
-00:30  night_escalate  一直没回音就连环 ping; 每晚记入 sleep_log
 04:30  快捷指令A        手机把今晚睡眠样本发进睡眠频道
 04:45  alarm_plan      按"入睡 + 目标睡眠 + 班车表"算出闹钟, 发 "ALARM hh:mm AM"
 04:55  快捷指令B        读 ALARM 行, 自动创建 iPhone 闹钟
@@ -57,12 +55,10 @@ cp config/bus_schedule.example.json config/bus_schedule.json
 
 ## 五、定时器(mini/Mac 侧)
 
-用 launchd 或 cron 挂四个例程(示例时刻可改):
+用 launchd 或 cron 挂两个例程(示例时刻可改):
 
 | 时刻 | 脚本 |
 |---|---|
-| 23:30 | `routines/night_call.py` |
-| 00:30 | `routines/night_escalate.py` |
 | 04:45 | `routines/alarm_plan.py` |
 | 12:10 | `routines/sleep_report.py` |
 

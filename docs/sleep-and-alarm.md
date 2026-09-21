@@ -1,14 +1,12 @@
 # Sleep care and the smart alarm: setup guide
 
-This optional suite lets Amy take part in your sleep: a goodnight note in the evening, a check-up past midnight, real Apple Watch sleep data in the morning briefing, and an iPhone wake-up alarm set automatically from **when you actually fell asleep**.
+This optional suite lets Amy take part in your sleep: real Apple Watch sleep data in the morning briefing, and an iPhone wake-up alarm set automatically from **when you actually fell asleep**.
 
 You need: an Apple Watch (sleep tracking), a configured Discord bot (see the Discord part of the README), and iPhone Shortcuts. No third-party apps; your data only passes through your own Discord server.
 
 ## The big picture
 
 ```
-23:30  night_call      Amy says goodnight and asks for any reply
-00:30  night_escalate  no reply at all -> a ping burst; one sleep_log line per night
 04:30  Shortcut A      the phone posts tonight's sleep samples to the sleep channel
 04:45  alarm_plan      onset + sleep target + bus timetable -> posts "ALARM hh:mm AM"
 04:55  Shortcut B      reads the ALARM line and creates the iPhone alarm
@@ -57,12 +55,10 @@ Automation: daily at **04:55**.
 
 ## 5. Timers (on the Mac side)
 
-Schedule four routines with launchd or cron (times are examples):
+Schedule two routines with launchd or cron (times are examples):
 
 | When | Script |
 |---|---|
-| 23:30 | `routines/night_call.py` |
-| 00:30 | `routines/night_escalate.py` |
 | 04:45 | `routines/alarm_plan.py` |
 | 12:10 | `routines/sleep_report.py` |
 
