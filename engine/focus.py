@@ -27,8 +27,9 @@ FOCUS_HEADER = "## 🍅 番茄专注（tellmetickme）"
 DEFAULT_MIN = 25
 MAX_MIN = 180
 
-_START_RE = re.compile(r"^(?:开工|開工)\s*(\d{1,3})?\s*(?:分钟|分鐘|分)?\s*(.*)$", re.S)
-_STOP_RE = re.compile(r"^(?:收工)\s*[:：,，、]?\s*(.*)$", re.S)
+_START_RE = re.compile(r"^(?:开工|開工|开番茄|開番茄)\s*(\d{1,3})?\s*(?:分钟|分鐘|分)?\s*(.*)$",
+                       re.S)
+_STOP_RE = re.compile(r"^(?:收工|收番茄)\s*[:：,，、]?\s*(.*)$", re.S)
 # 英文别名(开源用户): pomo [min] [task] / pomo done [report]
 _START_EN_RE = re.compile(r"^pomo(?!\w)\s*(\d{1,3})?\s*(?:min(?:ute)?s?)?\s*(.*)$",
                           re.I | re.S)
@@ -107,15 +108,22 @@ def check_due():
     return f"🍅 {st['minutes']} 分钟到了, 歇会儿吧。"
 
 
+# 口令常被引号/括号裹着发过来(照着说明书的「开工」原样输入), 先剥壳再匹配。
+# 只剥首尾的括号引号类字符; 任务名末尾偶有半边括号被顺走, 无伤大雅。
+_WRAPPERS = "「」『』【】《》〈〉（）()\"'""''<>"
+
+
 def handle(text):
-    """开工/收工口令(及英文别名 pomo / pomo done)。命中返回回复文本, 否则 None 走正常聊天。"""
-    s = text.strip()
-    if s.startswith("收工"):
+    """开工/收工口令(别名: 开番茄/收番茄, 英文 pomo / pomo done)。
+    命中返回回复文本, 否则 None 走正常聊天。"""
+    s = text.strip().strip(_WRAPPERS).strip()
+    if s.startswith(("收工", "收番茄")):
         return _handle_stop(_STOP_RE.match(s).group(1).strip())
     m = _STOP_EN_RE.match(s)                   # pomo done 要在 pomo 之前判
     if m:
         return _handle_stop(m.group(1).strip())
-    m = _START_RE.match(s) if s.startswith(("开工", "開工")) else _START_EN_RE.match(s)
+    m = (_START_RE.match(s) if s.startswith(("开工", "開工", "开番茄", "開番茄"))
+         else _START_EN_RE.match(s))
     if m:
         mins = int(m.group(1)) if m.group(1) else DEFAULT_MIN
         mins = min(max(mins, 1), MAX_MIN)
