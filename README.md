@@ -112,6 +112,16 @@ Give Amy a Discord bot and she moves into your phone:
 
 Two settings are all it takes: a bot token and your user id (env vars `AMY_DISCORD_TOKEN` / `AMY_DISCORD_USER`); the daemon is `engine/amy_discord.py`. Voice messages additionally need `mlx-whisper` (Apple Silicon, `pip install mlx-whisper`); if another project already has it, point `AMY_STT_PYTHON` at that venv and the model cache is shared, so nothing is downloaded twice (see `engine/stt.py`). The sleep data in the next section also travels through a Discord channel, so this is its prerequisite.
 
+## 🍅 A pomodoro that starts with one word (optional, via Discord)
+
+What I need is not time tracking but **a lower barrier to starting**: a whole task can feel impossible to begin, yet "just 25 minutes" is easy to say yes to. So Amy got a minimal pomodoro, with no panel and no visible countdown, entirely conversational:
+
+- Tell her "**pomo** write the intro" and a 25-minute tomato is running; "pomo 40 write the intro" sets a custom length (Chinese speakers can say 「开工」)
+- When time is up she sends **one** message telling you to take a break; just one, no second nudge, and no "break is over" reminder either, the next tomato starts whenever you say so
+- Say "**pomo done** finished the draft" (or 「收工」) and your report is archived with the start and end times into the 🍅 section of today's daily note; stopping early is recorded just the same, **there is no such thing as a failed tomato**
+- She never assigns the task for you; when you cannot decide what this tomato is for, just ask her
+- No streaks, no check-ins, no daily tomato counts: it helps you start, it does not grade you
+
 ## ⏰ A smart wake-up alarm from sleep tracking: your alarm should not be decided before you have even fallen asleep
 
 The plan is usually to sleep at 23:30 and set a 7:30 alarm for a full eight hours. But you lie awake, fall asleep an hour later than planned, and the fixed alarm fires anyway, quietly cutting into your sleep. Pushing it later means missing the bus, the metro, the train, or your must-leave time when driving, so you end up juggling sleep length, wake-up time and departure time in your head.
@@ -179,6 +189,7 @@ Done:
 - [x] **Voice input**: voice messages are transcribed (mlx-whisper) and echoed back before she answers
 - [x] Optional Gmail (read+draft) and read-only Calendar connectors
 - [x] **The full sleep suite**: watch data flowing back, an alarm set from actual sleep onset, one-sentence exemptions
+- [x] **Pomodoro**: "pomo" / "pomo done" commands, a single DM when time is up, sessions archived into the daily note
 
 Planned:
 

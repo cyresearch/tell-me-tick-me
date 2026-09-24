@@ -15,6 +15,7 @@
 手机聊的桌面能看到, 桌面聊的手机也有记录。DM 里说话不需要 @。
 """
 import base64
+import datetime
 import json
 import os
 import pathlib
@@ -29,6 +30,7 @@ import threading
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import focus
 import secretary
 import server as srv
 import stt
@@ -313,6 +315,14 @@ def _hear(m, tok, channel):
     return text
 
 
+def log_exchange(user_text, amy_text):
+    """口令类往来(确认流之外的番茄钟等)也进聊天历史: 桌面能看到, Amy 后续有上下文。"""
+    stamp = f"{datetime.datetime.now():%Y-%m-%d %H:%M}"
+    if user_text:
+        secretary._append_history({"t": stamp, "role": "user", "text": user_text})
+    secretary._append_history({"t": stamp, "role": "secretary", "text": amy_text})
+
+
 def state():
     try:
         return json.loads(STATE_F.read_text())
@@ -340,6 +350,11 @@ def main():
         threading.Thread(target=presence_loop, args=(TOK,), daemon=True).start()
     while True:
         try:
+            due_msg = focus.check_due()          # 番茄到点: 只发这一条, 不催第二遍
+            if due_msg:
+                print(f"番茄到点: {due_msg}", flush=True)
+                send(TOK, channel, due_msg)
+                log_exchange(None, due_msg)
             after = f"?after={st['last_id']}" if st.get("last_id") else "?limit=1"
             msgs = api(f"/channels/{channel}/messages{after}")
             if isinstance(msgs, list) and msgs:
@@ -365,6 +380,12 @@ def main():
                     if confirm_reply is not None:
                         print(f"DM 确认指令: {confirm_reply[:50]}", flush=True)
                         send(TOK, channel, confirm_reply)
+                        continue
+                    focus_reply = focus.handle(text)   # 「开工/收工」口令, 不经过 LLM
+                    if focus_reply is not None:
+                        print(f"番茄口令: {focus_reply[:50]}", flush=True)
+                        send(TOK, channel, focus_reply)
+                        log_exchange(text, focus_reply)
                         continue
                     try:
                         reply, sugg = secretary.chat(text, todo_text, done)
